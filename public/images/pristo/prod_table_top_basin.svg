@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" fill="#faf8f5"/>
+  <g transform="translate(20, 35)">
+    <!-- Wooden Table Surface -->
+    <rect x="0" y="125" width="160" height="15" rx="3" fill="#8c6d46"/>
+    <!-- Oval Wash Basin Outer Body -->
+    <ellipse cx="80" cy="95" rx="70" ry="40" fill="#ffffff" stroke="#c09b5a" stroke-width="3"/>
+    <!-- Basin Rim Detail -->
+    <ellipse cx="80" cy="95" rx="66" ry="36" fill="#ffffff" stroke="#e8e4dc" stroke-width="1.5"/>
+    <!-- Basin Bowl Inner Shadow & Depth -->
+    <ellipse cx="80" cy="98" rx="55" ry="28" fill="#f4eeea"/>
+    <!-- Drain Hole -->
+    <ellipse cx="80" cy="104" rx="10" ry="5" fill="#171615"/>
+    <ellipse cx="80" cy="104" rx="7" ry="3.5" fill="#c09b5a"/>
+  </g>
+</svg>

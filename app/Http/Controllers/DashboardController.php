@@ -16,6 +16,10 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        if (auth()->user() && auth()->user()->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         $userId = auth()->id();
         $orders = Order::where('user_id', $userId)->orderBy('created_at', 'desc')->get();
         $quotations = QuotationRequest::where('user_id', $userId)->with('product')->orderBy('created_at', 'desc')->get();

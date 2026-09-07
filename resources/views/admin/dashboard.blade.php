@@ -184,7 +184,7 @@
                             <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Product List</p>
                             @foreach($firstOrder->items as $item)
                                 <div class="flex justify-between items-center bg-slate-50/50 p-2.5 rounded border">
-                                    <span class="text-slate-800 leading-tight font-extrabold">{{ $item->product->name }} <strong class="text-slate-900">x{{ $item->quantity }}</strong></span>
+                                    <span class="text-slate-800 leading-tight font-extrabold">{{ $item->product->name ?? ($item->product_name ?? 'Product #' . $item->product_id) }} <strong class="text-slate-900">x{{ $item->quantity }}</strong></span>
                                     <span class="font-bold text-slate-900">₹{{ number_format($item->total, 0) }}</span>
                                 </div>
                             @endforeach

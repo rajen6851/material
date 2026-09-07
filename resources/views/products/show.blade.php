@@ -9,9 +9,9 @@
             <nav class="flex gap-2 items-center">
                 <a href="/" class="hover:text-teal-600">Home</a>
                 <span>&gt;</span>
-                <a href="/products?category={{ $product->category->slug }}" class="hover:text-teal-600">{{ $product->category->name }}</a>
+                <a href="/products?category={{ $product->category->slug ?? 'tiles' }}" class="hover:text-teal-600">{{ $product->category->name ?? 'Tiles' }}</a>
                 <span>&gt;</span>
-                <a href="/products?room={{ $product->room->slug }}" class="hover:text-teal-600">{{ $product->room->name }} Tiles</a>
+                <a href="/products?room={{ $product->room->slug ?? 'general' }}" class="hover:text-teal-600">{{ $product->room->name ?? 'General' }} Tiles</a>
                 <span>&gt;</span>
                 <span class="text-slate-800">{{ $product->name }}</span>
             </nav>
@@ -41,7 +41,7 @@
                 <div>
                     <div class="flex justify-between items-center mb-1">
                         <h1 class="text-2xl font-black text-slate-900">{{ $product->name }}</h1>
-                        <span class="text-teal-700 font-bold text-sm tracking-wide uppercase">{{ $product->brand->name }}</span>
+                        <span class="text-teal-700 font-bold text-sm tracking-wide uppercase">{{ $product->brand->name ?? 'Premium' }}</span>
                     </div>
                 </div>
 

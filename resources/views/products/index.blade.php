@@ -206,7 +206,7 @@
                                     
                                     <!-- Specs text in title style -->
                                     <div class="text-[10px] text-slate-400 font-semibold space-x-1.5 mb-2">
-                                        <span>{{ $product->brand->name }}</span>
+                                        <span>{{ $product->brand->name ?? 'Generic' }}</span>
                                         <span>&bull;</span>
                                         <span>{{ $product->size ?: '600x600mm' }}</span>
                                         <span>&bull;</span>
@@ -228,14 +228,20 @@
                                                 <div class="text-[10px] text-slate-400 line-through">₹{{ number_format($product->mrp, 2) }} / sq.ft</div>
                                             @endif
                                         </div>
-                                        <form action="/cart/add" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                            <input type="hidden" name="quantity" value="1">
-                                            <button type="submit" class="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition">
-                                                Add to Cart
-                                            </button>
-                                        </form>
+                                        @if(auth()->check() && auth()->user()->isProfessional())
+                                            <a href="/quotation-requests/create?product_id={{ $product->id }}" class="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition">
+                                                Request Quote
+                                            </a>
+                                        @else
+                                            <form action="/cart/add" method="POST">
+                                                @csrf
+                                                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                                <input type="hidden" name="quantity" value="1">
+                                                <button type="submit" class="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition">
+                                                    Add to Cart
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </div>
                             </div>

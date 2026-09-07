@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" fill="#faf8f5"/>
+  <g transform="translate(20, 20)">
+    <!-- Main Cabinet Frame (Dark Oak) -->
+    <rect x="15" y="65" width="130" height="85" rx="6" fill="#36291e" stroke="#171615" stroke-width="2"/>
+    <!-- Drawer Splits -->
+    <line x1="15" y1="108" x2="145" y2="108" stroke="#171615" stroke-width="2"/>
+    <line x1="80" y1="108" x2="80" y2="150" stroke="#171615" stroke-width="2"/>
+    <!-- Gold Drawer Pull Handles -->
+    <rect x="40" y="82" width="25" height="4" rx="2" fill="#c09b5a"/>
+    <rect x="95" y="82" width="25" height="4" rx="2" fill="#c09b5a"/>
+    <rect x="35" y="125" width="25" height="4" rx="2" fill="#c09b5a"/>
+    <rect x="100" y="125" width="25" height="4" rx="2" fill="#c09b5a"/>
+    <!-- Countertop Counter (White Ceramic / Quartz) -->
+    <rect x="10" y="55" width="140" height="15" rx="3" fill="#ffffff" stroke="#c09b5a" stroke-width="2"/>
+    <!-- Integrated Basin Contour -->
+    <ellipse cx="80" cy="58" rx="35" ry="8" fill="#f4eeea" stroke="#d4cecf"/>
+  </g>
+</svg>

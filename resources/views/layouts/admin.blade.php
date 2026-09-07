@@ -24,9 +24,9 @@
 
         <!-- Top Minimal Admin Header -->
         <header class="bg-[#0d2238] text-white py-3 px-8 flex justify-between items-center shadow-md z-30 relative border-b border-slate-800">
-            <div class="flex items-center gap-2">
-                <span class="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center text-white font-extrabold text-base shadow-sm">M</span>
-                <span class="font-black text-lg tracking-tight">Material<span class="text-teal-500">Deck</span> <span class="text-xs bg-[#1e344d] text-teal-400 px-2 py-0.5 rounded font-bold uppercase ml-2">Admin Panel</span></span>
+            <div class="flex items-center gap-3">
+                <img src="{{ asset('images/logo.jpeg') }}" alt="PRISTO ENTERPRISES" class="h-9 w-auto object-contain rounded bg-white/10 p-0.5 border border-white/20">
+                <span class="font-black text-lg tracking-tight">PRISTO <span class="text-[#c09b5a]">ENTERPRISES</span> <span class="text-xs bg-[#1e344d] text-teal-400 px-2 py-0.5 rounded font-bold uppercase ml-2">Admin Panel</span></span>
             </div>
             
             <div class="flex items-center gap-4 text-xs font-semibold">
@@ -57,8 +57,11 @@
                         <!-- Catalog Manager Section -->
                         <div class="space-y-0.5 pt-3">
                             <span class="text-slate-500 text-[10px] uppercase font-bold tracking-wider pl-4 block mb-1">Catalog Management</span>
-                            <a href="/admin/products" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/products*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}">
+                            <a href="/admin/products" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/products') || request()->is('admin/products/*/edit') || request()->is('admin/products/create') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}">
                                 <span>&bull; Product Manager (CRUD)</span>
+                            </a>
+                            <a href="/admin/products/import" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/products/import*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}">
+                                <span>&bull; Bulk CSV Importer</span>
                             </a>
                             <a href="/admin/categories" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/categories*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}">
                                 <span>&bull; Categories list</span>

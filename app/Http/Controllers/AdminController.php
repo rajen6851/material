@@ -150,6 +150,415 @@ class AdminController extends Controller implements HasMiddleware
         return view('admin.products.index', compact('products'));
     }
 
+    public function productImportForm()
+    {
+        return view('admin.products.import');
+    }
+
+    public function productImportSample()
+    {
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=products_bulk_import_sample.csv",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $columns = [
+            'S.No', 'Tile Image', 'Tile Name', 'Collection', 'Category', 'Sub Category',
+            'Finish', 'Width (mm)', 'Height (mm)', 'Size', 'Thickness (mm)', 'Size (inch)',
+            'Area/Tile (sqft)', 'Pattern Type', 'Edge Type', 'SKU / Product Code',
+            'Pieces per box', 'Coverage per box (sqft)', 'Weight per box (kg)',
+            'Price per box', 'Price per sqft', 'Application Area', 'Stock status',
+            'Short Description', 'SEO Meta Title', 'SEO Meta Description', 'URL Slug', 'Catalog Page'
+        ];
+
+        $sampleRow1 = [
+            '1', 'images/products/emesa-white.svg', 'Emesa White', 'Glossy', 'TILES', 'GVT',
+            'Glossy', '600', '1200', '600x1200mm', '9 MM', '24x48',
+            '8', 'Standard', 'Square', 'EMESA-1200W',
+            '2', '16', '30', '880', '55', 'Bathroom / Floor', 'In Stock',
+            'Craft a statement with Emesa White, blending crisp white tones with a Glossy finish in a Standard pattern.',
+            'Complete Your Space With Emesa White Glossy Tile Online',
+            'Now available: Emesa White - crisp white tones, Glossy finish, Standard pattern, sized 600x1200mm.',
+            'emesa-white', '1'
+        ];
+
+        $sampleRow2 = [
+            '2', 'images/products/satvario-bronz.svg', 'Satvario Bronz', 'Glossy', 'TILES', 'GVT',
+            'Glossy', '600', '1200', '600x1200mm', '9 MM', '24x48',
+            '8', 'Standard', 'Square', 'SATVARIO-1200B',
+            '2', '16', '30', '880', '55', 'Living Room / Floor', 'In Stock',
+            'Frame your space with Satvario Bronz - a rich brown tile with a Glossy finish.',
+            'Style With Satvario Bronz Glossy Tile Online',
+            'Rich Satvario Bronz - a rich brown Glossy Finish Standard tile in 600x1200mm.',
+            'satvario-bronz', '2'
+        ];
+
+        $callback = function() use ($columns, $sampleRow1, $sampleRow2) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            fputcsv($file, $sampleRow1);
+            fputcsv($file, $sampleRow2);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function productImportProcess(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|max:20480',
+        ]);
+
+        $file = $request->file('csv_file');
+        $rawPath = $file->getRealPath();
+        $fileContent = file_get_contents($rawPath);
+
+        if (!$fileContent) {
+            return redirect()->back()->with('error', 'The uploaded file is empty.');
+        }
+
+        // 1. Check if file is a binary XLSX / ZIP archive (starts with PK\x03\x04)
+        if (substr($fileContent, 0, 4) === "PK\x03\x04") {
+            return redirect()->back()->with('error', 'The uploaded file is an Excel (.xlsx) binary file. Please open it in Excel, click "Save As", and select "CSV (Comma delimited) (*.csv)" before uploading.');
+        }
+
+        // 2. Detect & convert multi-byte encodings (UTF-16LE, UTF-16BE, Windows-1252, ISO-8859-1) to UTF-8
+        $detected = mb_detect_encoding($fileContent, ['UTF-8', 'UTF-16LE', 'UTF-16BE', 'Windows-1252', 'ISO-8859-1', 'ASCII'], true);
+        if ($detected && $detected !== 'UTF-8') {
+            $fileContent = mb_convert_encoding($fileContent, 'UTF-8', $detected);
+        }
+
+        // Remove UTF-8 BOM if present
+        $fileContent = preg_replace('/^\xEF\xBB\xBF/', '', $fileContent);
+
+        // Sanitize string to clean UTF-8 using iconv
+        $sanitizedContent = @iconv('UTF-8', 'UTF-8//IGNORE', $fileContent);
+        if ($sanitizedContent) {
+            $fileContent = $sanitizedContent;
+        }
+
+        // Create temp memory stream for fgetcsv
+        $handle = fopen('php://memory', 'r+');
+        fwrite($handle, $fileContent);
+        rewind($handle);
+
+        // Auto-detect delimiter (, or ; or \t)
+        $firstLine = fgets($handle);
+        rewind($handle);
+        $delimiter = ',';
+        if ($firstLine) {
+            $commaCount = substr_count($firstLine, ',');
+            $tabCount = substr_count($firstLine, "\t");
+            $semiCount = substr_count($firstLine, ';');
+            if ($tabCount > $commaCount && $tabCount > $semiCount) {
+                $delimiter = "\t";
+            } elseif ($semiCount > $commaCount && $semiCount > $tabCount) {
+                $delimiter = ";";
+            }
+        }
+
+        // Helper to sanitize individual string cells for DB safety
+        $cleanStr = function($val) {
+            if ($val === null || $val === '') return null;
+            $val = trim($val);
+            $val = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $val);
+            $safe = @iconv('UTF-8', 'UTF-8//IGNORE', $val);
+            return $safe !== false ? $safe : $val;
+        };
+
+        // Find actual header row by scanning up to 20 rows for header keywords
+        $header = null;
+        $headerLineNumber = 0;
+        $lineNumber = 0;
+
+        while (($candidateRow = fgetcsv($handle, 0, $delimiter)) !== false) {
+            $lineNumber++;
+
+            if (empty(array_filter($candidateRow))) {
+                continue;
+            }
+
+            $rowStr = strtolower(implode(' ', $candidateRow));
+
+            // Check if this row looks like a valid header row
+            if (
+                str_contains($rowStr, 'tile name') ||
+                str_contains($rowStr, 'tilename') ||
+                str_contains($rowStr, 'product name') ||
+                str_contains($rowStr, 'sku') ||
+                str_contains($rowStr, 's.no') ||
+                str_contains($rowStr, 'sno') ||
+                (str_contains($rowStr, 'name') && str_contains($rowStr, 'category'))
+            ) {
+                $header = $candidateRow;
+                $headerLineNumber = $lineNumber;
+                break;
+            }
+        }
+
+        // If no explicit header detected, assume row 2 or row 1 as fallback header
+        if (!$header) {
+            rewind($handle);
+            $headerLineNumber = 1;
+            $header = fgetcsv($handle, 0, $delimiter);
+        }
+
+        // Clean headers for easy lookup
+        $normalizedHeaders = $header ? array_map(function($h) {
+            return strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $h)));
+        }, $header) : [];
+
+        // Helper to find cell value by candidate header names or fallback index
+        $getCol = function($row, array $candidates, $fallbackIndex = null) use ($normalizedHeaders, $cleanStr) {
+            foreach ($candidates as $cand) {
+                $cleanCand = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $cand)));
+                $idx = array_search($cleanCand, $normalizedHeaders);
+                if ($idx !== false && isset($row[$idx])) {
+                    $val = $cleanStr($row[$idx]);
+                    if ($val !== null && $val !== '') return $val;
+                }
+            }
+            if ($fallbackIndex !== null && isset($row[$fallbackIndex])) {
+                $val = $cleanStr($row[$fallbackIndex]);
+                if ($val !== null && $val !== '') return $val;
+            }
+            return null;
+        };
+
+        // Cache category, room, brand lookups for speed
+        $categoriesMap = Category::all()->pluck('id', 'name')->toArray();
+        $categoriesSlugMap = Category::all()->pluck('id', 'slug')->toArray();
+        $roomsMap = Room::all()->pluck('id', 'name')->toArray();
+        $roomsSlugMap = Room::all()->pluck('id', 'slug')->toArray();
+        $brandsMap = Brand::all()->pluck('id', 'name')->toArray();
+
+        $defaultRoomId = !empty($roomsMap) ? reset($roomsMap) : Room::firstOrCreate(['name' => 'General', 'slug' => 'general'])->id;
+        $defaultCategoryId = !empty($categoriesMap) ? reset($categoriesMap) : Category::firstOrCreate(['name' => 'Tiles', 'slug' => 'tiles'])->id;
+        $defaultBrandId = !empty($brandsMap) ? reset($brandsMap) : Brand::firstOrCreate(['name' => 'Generic', 'slug' => 'generic'])->id;
+
+        $createdCount = 0;
+        $updatedCount = 0;
+        $failedCount = 0;
+        $errors = [];
+        $lineNumber = $headerLineNumber;
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+                $lineNumber++;
+
+                // Skip completely empty rows
+                if (empty(array_filter($row))) {
+                    continue;
+                }
+
+                // Column C (index 2): Tile Name
+                $tileName = $getCol($row, ['Tile Name', 'TileName', 'Name', 'Product Name', 'Title', 'Product', 'Item Name', 'Tile'], 2);
+                
+                // Skip header row if re-encountered
+                if (strtolower($tileName) === 'tile name' || strtolower($tileName) === 'name') {
+                    continue;
+                }
+
+                if (!$tileName) {
+                    $errors[] = "Row {$lineNumber}: Skipped - Missing product name.";
+                    $failedCount++;
+                    continue;
+                }
+
+                // Column E (index 4): Category
+                $categoryName = $getCol($row, ['Category', 'Cat'], 4);
+                $categoryId = $defaultCategoryId;
+                if ($categoryName) {
+                    $catClean = trim($categoryName);
+                    $catSlug = Str::slug($catClean);
+                    if (isset($categoriesMap[$catClean])) {
+                        $categoryId = $categoriesMap[$catClean];
+                    } elseif (isset($categoriesSlugMap[$catSlug])) {
+                        $categoryId = $categoriesSlugMap[$catSlug];
+                    } else {
+                        $newCat = Category::create([
+                            'name' => $catClean,
+                            'slug' => $catSlug,
+                            'image' => 'images/categories/tiles.svg'
+                        ]);
+                        $categoriesMap[$catClean] = $newCat->id;
+                        $categoriesSlugMap[$catSlug] = $newCat->id;
+                        $categoryId = $newCat->id;
+                    }
+                }
+
+                // Column V (index 21): Application Area
+                $appArea = $getCol($row, ['Application Area', 'ApplicationArea', 'Room', 'Application'], 21);
+                $roomId = $defaultRoomId;
+                if ($appArea) {
+                    foreach ($roomsMap as $rName => $rId) {
+                        if (stripos($appArea, $rName) !== false) {
+                            $roomId = $rId;
+                            break;
+                        }
+                    }
+                }
+
+                $brandName = $getCol($row, ['Brand']);
+                $brandId = $defaultBrandId;
+                if ($brandName && isset($brandsMap[trim($brandName)])) {
+                    $brandId = $brandsMap[trim($brandName)];
+                }
+
+                // Column P (index 15): SKU
+                $sku = $getCol($row, ['SKU / Product Code', 'SKU/Product Code', 'SKU', 'Product Code', 'Code'], 15);
+                // Column AB / AA (index 26): URL Slug
+                $slug = $getCol($row, ['URL Slug', 'URLSlug', 'Slug'], 26);
+                if (!$slug || $slug === $tileName) {
+                    $slug = Str::slug($tileName);
+                }
+
+                if (!$sku || is_numeric($sku) && (int)$sku < 100) {
+                    $sku = strtoupper(Str::slug($tileName)) . '-' . rand(1000, 9999);
+                }
+
+                // Numeric parsing helpers
+                $parseNum = function($val, $default = 0) {
+                    if ($val === null) return $default;
+                    $clean = preg_replace('/[^0-9\.]/', '', $val);
+                    return is_numeric($clean) ? (float)$clean : $default;
+                };
+
+                // Column T (index 19): Price per Box & Column U (index 20): Price per Sq Ft
+                $pricePerBox = $parseNum($getCol($row, ['Price per Box', 'Price per box', 'Price/Box', 'Price', 'MRP'], 19), 0);
+                $pricePerSqft = $parseNum($getCol($row, ['Price per Sq.Ft', 'Price per Sq Ft', 'Price per sq.ft', 'Price per sqft'], 20), 0);
+                $mrp = $pricePerBox > 0 ? $pricePerBox : ($pricePerSqft > 0 ? $pricePerSqft * 16 : 500);
+                $price = $pricePerSqft > 0 ? $pricePerSqft : ($pricePerBox > 0 ? round($pricePerBox / 16, 2) : 50);
+
+                // Column W / X (index 22 / 23): Stock Status
+                $stockVal = $getCol($row, ['Stock Status', 'Priock Status', 'Stock status', 'Stock', 'Quantity', 'Status'], 23);
+                if (!$stockVal) {
+                    $stockVal = $getCol($row, [], 22);
+                }
+                $stock = 100;
+                if ($stockVal) {
+                    if (is_numeric($stockVal)) {
+                        $stock = (int)$stockVal;
+                    } elseif (stripos($stockVal, 'out') !== false) {
+                        $stock = 0;
+                    }
+                }
+
+                // Specs: Column H (7), I (8), J (9), K (10), L (11), M (12), N (13), O (14), Q (16), R (17), S (18)
+                $widthMm = $parseNum($getCol($row, ['Width (mm)', 'Width(mm)', 'Width'], 7), 600);
+                $heightMm = $parseNum($getCol($row, ['Height (mm)', 'Height(mm)', 'Height'], 8), 1200);
+                $thickness = $getCol($row, ['Thickness (mm)', 'Thickness(mm)', 'Thickness'], 10) ?? '9 MM';
+                $size = $getCol($row, ['Size (mm)', 'Size', 'Size(mm)'], 9) ?? ($widthMm . 'x' . $heightMm . 'mm');
+                $sizeInch = $getCol($row, ['Size (Inch)', 'Size (inch)', 'Size(inch)'], 11) ?? '24x48';
+                $collection = $getCol($row, ['Collection'], 3) ?? 'Glossy';
+                $subCategory = $getCol($row, ['Sub Category', 'SubCategory', 'Sub-Category'], 5) ?? 'Floor Tiles';
+                $finish = $getCol($row, ['Finish'], 6) ?? 'Glossy';
+                $patternType = $getCol($row, ['Pattern Types', 'Pattern Type', 'PatternType', 'Pattern'], 13) ?? 'Standard';
+                $edgeType = $getCol($row, ['Edge Type', 'EdgeType', 'Edge'], 14) ?? 'Square';
+                $piecesPerBox = (int)$parseNum($getCol($row, ['Pieces per Box', 'Pieces per box', 'Pieces/Box'], 16), 2);
+                $coveragePerBox = $parseNum($getCol($row, ['Coverage per Box (sq.ft)', 'Coverage per box (sqft)', 'Coverage'], 17), 16);
+                $weightPerBox = $parseNum($getCol($row, ['Weight per Box (kg/ft)', 'Weight per Box (kg)', 'Weight'], 18), 30);
+                $areaTileSqft = $parseNum($getCol($row, ['Area/Tile (sq.ft)', 'Area/Tile (sqft)', 'Area/Tile'], 12), 8);
+
+                // Descriptions & Meta: Column Y (24), Z (25), AC (27)
+                $shortDesc = $getCol($row, ['Short Description', 'ShortDescription', 'Description'], 24);
+                $metaDesc = $getCol($row, ['SEO Meta Description', 'SEO Meta Title', 'Meta Description'], 25);
+                $metaTitle = "Buy {$tileName} Tile Online";
+                $catalogPage = $getCol($row, ['Catalog Page', 'CatalogPage', 'Page'], 27);
+                $tileImage = $getCol($row, ['Tile Image', 'TileImage', 'Image', 'Image Path'], 1);
+
+                $productData = [
+                    'name' => $tileName,
+                    'short_description' => $shortDesc,
+                    'description' => $shortDesc ?? "High quality {$tileName} {$collection} tile.",
+                    'mrp' => $mrp,
+                    'price' => $price,
+                    'discount' => 0.00,
+                    'gst_percent' => 18.00,
+                    'stock' => $stock,
+                    'rating' => 4.90,
+                    'category_id' => $categoryId,
+                    'room_id' => $roomId,
+                    'brand_id' => $brandId,
+                    'collection' => $collection,
+                    'sub_category' => $subCategory,
+                    'finish' => $finish,
+                    'material' => $subCategory ?: 'GVT',
+                    'color' => 'White',
+                    'size' => $size,
+                    'width_mm' => $widthMm,
+                    'height_mm' => $heightMm,
+                    'size_inch' => $sizeInch,
+                    'thickness' => $thickness,
+                    'area_tile_sqft' => $areaTileSqft,
+                    'pattern_type' => $patternType,
+                    'edge_type' => $edgeType,
+                    'pieces_per_box' => $piecesPerBox,
+                    'coverage_per_box_sqft' => $coveragePerBox,
+                    'weight_per_box_kg' => $weightPerBox,
+                    'price_per_box' => $pricePerBox > 0 ? $pricePerBox : $mrp,
+                    'price_per_sqft' => $pricePerSqft > 0 ? $pricePerSqft : $price,
+                    'wholesale_price' => $pricePerBox > 0 ? round($pricePerBox * 0.9, 2) : round($price * 14, 2),
+                    'coverage_area' => $coveragePerBox . ' sq. ft / box',
+                    'water_absorption' => '< 0.05%',
+                    'warranty' => '5 Years',
+                    'delivery_time' => '3-5 Days',
+                    'application_area' => $appArea,
+                    'seo_meta_title' => $metaTitle,
+                    'seo_meta_description' => $metaDesc,
+                    'catalog_page' => $catalogPage,
+                    'is_featured' => true,
+                    'is_trending' => true,
+                    'is_new' => true,
+                ];
+
+                // Check existing product by SKU or Slug
+                $existingProduct = Product::where('sku', $sku)->orWhere('slug', $slug)->first();
+
+                if ($existingProduct) {
+                    $existingProduct->update($productData);
+                    $product = $existingProduct;
+                    $updatedCount++;
+                } else {
+                    $productData['sku'] = $sku;
+                    $productData['slug'] = $slug;
+                    $product = Product::create($productData);
+                    $createdCount++;
+                }
+
+                // Add image if provided
+                if ($tileImage) {
+                    ProductImage::updateOrCreate(
+                        ['product_id' => $product->id, 'is_primary' => true],
+                        ['image_path' => $tileImage]
+                    );
+                }
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+            fclose($handle);
+
+            $msg = "Bulk Import Complete! Created: {$createdCount}, Updated: {$updatedCount}, Skipped/Failed: {$failedCount}.";
+            return redirect()->route('admin.products.import.form')->with([
+                'success' => $msg,
+                'import_errors' => $errors,
+                'created_count' => $createdCount,
+                'updated_count' => $updatedCount,
+                'failed_count' => $failedCount
+            ]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            fclose($handle);
+            return redirect()->back()->with('error', 'Import failed due to error: ' . $e->getMessage());
+        }
+    }
+
     public function productCreate()
     {
         $categories = Category::with('subCategories')->get();

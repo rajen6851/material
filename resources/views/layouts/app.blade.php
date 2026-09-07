@@ -67,45 +67,50 @@
             }
         @endphp
 
-        <!-- Top Announcement Bar -->
-        <div class="bg-[#f5f2ed] border-b border-[#e8e4dc] text-[#55504a] py-2 px-4 text-xs font-medium">
-            <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-                <div class="flex items-center gap-2">
-                    <span class="text-xs font-semibold tracking-wide">📍 Premium Building &amp; Home Solutions | Bangalore</span>
-                </div>
-                <div class="flex items-center gap-6 text-xs text-[#66615b]">
-                    <span>Expert Guidance</span>
-                    <span class="text-[#c5c0b8]">|</span>
-                    <span>Free Design Consultation</span>
-                    <span class="text-[#c5c0b8]">|</span>
-                    <span class="flex items-center gap-1 font-semibold text-[#242220]">
-                        <svg class="w-3.5 h-3.5 text-[#c09b5a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                        +91 98765 43210
-                    </span>
+        <!-- Top Header & Announcement Wrapper -->
+        <header class="bg-[#f7f4ef] border-b border-[#e8e4dc] sticky top-0 z-50 shadow-sm" x-data="{ open: false, categoryDropdown: false, roomDropdown: false, brandDropdown: false, userDropdown: false }">
+            
+            <!-- Top Announcement Bar -->
+            <div class="bg-[#171615] text-[#d6d0c7] py-2 px-4 text-xs font-medium border-b border-[#2b2825]">
+                <div class="max-w-[1500px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-medium tracking-wide text-[#e5dfd5]">📍 Premium Building &amp; Home Solutions | Bangalore</span>
+                    </div>
+                    <div class="flex items-center gap-6 text-xs text-[#a8a29e]">
+                        <span>Expert Guidance</span>
+                        <span class="text-[#44403c]">|</span>
+                        <span>Free Design Consultation</span>
+                        <span class="text-[#44403c]">|</span>
+                        <span class="flex items-center gap-1.5 font-semibold text-white">
+                            <svg class="w-3.5 h-3.5 text-[#c09b5a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            +91 98765 43210
+                        </span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Main Header Navigation -->
-        <header class="bg-white border-b border-[#e8e4dc] sticky top-0 z-50 shadow-sm" x-data="{ open: false, categoryDropdown: false, roomDropdown: false, brandDropdown: false, userDropdown: false }">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center h-20 gap-6">
+            <!-- Main Header Navigation Bar -->
+            <div class="max-w-[1550px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+                <div class="flex justify-between items-center gap-6">
                     
                     <!-- Left: Pristo Logo -->
-                    <a href="/" class="flex flex-col items-start justify-center group flex-shrink-0">
-                        <span class="font-serif-pristo font-bold text-2xl tracking-[0.18em] text-[#171615] leading-tight group-hover:text-[#c09b5a] transition">PRISTO</span>
-                        <span class="text-[9px] uppercase tracking-[0.3em] font-medium text-[#78716c] -mt-0.5">SPACES INSPIRED</span>
+                    <a href="/" class="flex items-center gap-3 group flex-shrink-0 py-1">
+                        <img src="{{ asset('images/logo.jpeg') }}" alt="PRISTO ENTERPRISES Logo" class="h-11 w-auto object-contain rounded-md shadow-sm border border-[#e8e4dc]/80 group-hover:scale-105 transition duration-300">
+                        <div class="flex flex-col">
+                            <span class="font-serif-pristo font-bold text-xl lg:text-2xl tracking-[0.15em] text-[#171615] leading-none group-hover:text-[#c09b5a] transition">PRISTO</span>
+                            <span class="text-[8px] uppercase tracking-[0.3em] font-bold text-[#78716c] mt-1">ENTERPRISES</span>
+                        </div>
                     </a>
                     
                     <!-- Center: Navigation Links -->
-                    <nav class="hidden lg:flex items-center gap-7 text-xs font-semibold uppercase tracking-wider text-[#3d3a36]">
-                        <a href="/" class="hover:text-[#c09b5a] transition py-1 text-[#c09b5a]">Home</a>
+                    <nav class="hidden lg:flex items-center gap-7 text-xs font-bold uppercase tracking-wider text-[#2b2825]">
+                        <a href="/" class="hover:text-[#c09b5a] transition py-1 text-[#171615]">Home</a>
                         
                         <!-- Shop by Space Dropdown -->
                         <div class="relative">
                             <button @click="roomDropdown = !roomDropdown" @click.away="roomDropdown = false" class="hover:text-[#c09b5a] transition flex items-center gap-1 py-1">
                                 Shop by Space
-                                <svg class="w-3 h-3 text-[#8c857b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                <svg class="w-3 h-3 text-[#78716c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </button>
                             <div x-show="roomDropdown" class="absolute left-0 mt-2 w-52 bg-white border border-[#e8e4dc] rounded-xl shadow-xl py-2 z-50 text-xs tracking-normal font-medium capitalize" x-cloak>
                                 @foreach($globalRooms as $room)
@@ -118,7 +123,7 @@
                         <div class="relative">
                             <button @click="brandDropdown = !brandDropdown" @click.away="brandDropdown = false" class="hover:text-[#c09b5a] transition flex items-center gap-1 py-1">
                                 Brands
-                                <svg class="w-3 h-3 text-[#8c857b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                <svg class="w-3 h-3 text-[#78716c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </button>
                             <div x-show="brandDropdown" class="absolute left-0 mt-2 w-52 bg-white border border-[#e8e4dc] rounded-xl shadow-xl py-2 z-50 text-xs tracking-normal font-medium capitalize" x-cloak>
                                 @foreach(\App\Models\Brand::all() as $br)
@@ -137,24 +142,31 @@
                         
                         <!-- Search Bar -->
                         <form action="/products" method="GET" class="relative w-full max-w-xs hidden sm:block">
-                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search for products, brands, spaces..." class="w-full pl-9 pr-4 py-2 bg-[#f6f4ef] border border-[#e2ddd5] focus:border-[#c09b5a] focus:bg-white focus:outline-none rounded-full text-xs text-[#242220] placeholder-[#8c857b] transition">
-                            <button type="submit" class="absolute left-3 top-2.5 text-[#8c857b] hover:text-[#c09b5a]">
+                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search for products, brands, spaces..." class="w-full pl-9 pr-4 py-2 bg-[#eae5dc] border border-[#dcd4c7] focus:border-[#c09b5a] focus:bg-white focus:outline-none rounded-full text-xs text-[#242220] placeholder-[#78716c] transition">
+                            <button type="submit" class="absolute left-3 top-2.5 text-[#78716c] hover:text-[#c09b5a]">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             </button>
                         </form>
 
                         <!-- Action Icons -->
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-3">
                             <!-- Wishlist Icon -->
-                            <a href="/products" class="text-[#242220] hover:text-[#c09b5a] transition p-1" title="Wishlist">
+                            <a href="/products" class="text-[#171615] hover:text-[#c09b5a] transition p-1.5 rounded-full hover:bg-[#eae5dc]" title="Wishlist">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.684a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
                             </a>
 
-                            <!-- Cart Icon -->
-                            <a href="/cart" class="relative text-[#242220] hover:text-[#c09b5a] transition p-1" title="Shopping Cart">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                                <span class="absolute -top-1 -right-1 bg-[#171615] text-white rounded-full text-[9px] font-bold w-4 h-4 flex items-center justify-center">{{ $cartCount }}</span>
-                            </a>
+                            @unless(auth()->check() && auth()->user()->isProfessional())
+                                <!-- Cart Icon (Homeowners & Guests) -->
+                                <a href="/cart" class="relative text-[#171615] hover:text-[#c09b5a] transition p-1.5 rounded-full hover:bg-[#eae5dc]" title="Shopping Cart">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                    <span class="absolute -top-1 -right-1 bg-[#171615] text-white rounded-full text-[9px] font-bold w-4 h-4 flex items-center justify-center">{{ $cartCount }}</span>
+                                </a>
+                            @else
+                                <!-- Quotation Requests Icon (Professionals) -->
+                                <a href="/quotation-requests/create" class="relative text-[#171615] hover:text-[#c09b5a] transition p-1.5 rounded-full hover:bg-[#eae5dc]" title="Request Quotation">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                </a>
+                            @endunless
 
                             <!-- User Profile -->
                             <div class="relative">
@@ -181,14 +193,14 @@
                                         </form>
                                     </div>
                                 @else
-                                    <a href="{{ route('login') }}" class="text-[#242220] hover:text-[#c09b5a] transition p-1" title="Account Login">
+                                    <a href="{{ route('login') }}" class="text-[#171615] hover:text-[#c09b5a] transition p-1.5 rounded-full hover:bg-[#eae5dc]" title="Account Login">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                                     </a>
                                 @endauth
                             </div>
 
                             <!-- Mobile Menu Button -->
-                            <button @click="open = !open" class="lg:hidden text-[#242220] focus:outline-none">
+                            <button @click="open = !open" class="lg:hidden text-[#171615] focus:outline-none">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                             </button>
                         </div>
@@ -200,7 +212,7 @@
             <div x-show="open" class="lg:hidden bg-white border-t border-[#e8e4dc] py-4 px-6 space-y-3 shadow-lg" x-cloak>
                 <form action="/products" method="GET" class="relative mb-4">
                     <input type="text" name="search" placeholder="Search products..." class="w-full pl-4 pr-10 py-2 border rounded-full text-sm">
-                    <button type="submit" class="absolute right-3 top-2.5 text-[#8c857b]">
+                    <button type="submit" class="absolute right-3 top-2.5 text-[#78716c]">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </button>
                 </form>
@@ -214,56 +226,11 @@
             </div>
         </header>
 
-        <!-- Value Proposition Ribbon Strip -->
-        <div class="bg-[#f7f4ef] border-b border-[#e8e4dc] py-3 px-4">
-            <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-center divide-x divide-[#e8e4dc]">
-                <div class="flex items-center justify-center gap-2.5 px-2">
-                    <div class="w-8 h-8 rounded-full bg-white border border-[#e2ddd5] flex items-center justify-center flex-shrink-0 text-[#c09b5a]">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
-                    </div>
-                    <div class="text-left">
-                        <p class="text-xs font-bold text-[#171615] leading-tight">Premium Brands</p>
-                        <p class="text-[10px] text-[#78716c]">Only the best for your home</p>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-center gap-2.5 px-2">
-                    <div class="w-8 h-8 rounded-full bg-white border border-[#e2ddd5] flex items-center justify-center flex-shrink-0 text-[#c09b5a]">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    </div>
-                    <div class="text-left">
-                        <p class="text-xs font-bold text-[#171615] leading-tight">Expert Guidance</p>
-                        <p class="text-[10px] text-[#78716c]">Professional support at every step</p>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-center gap-2.5 px-2">
-                    <div class="w-8 h-8 rounded-full bg-white border border-[#e2ddd5] flex items-center justify-center flex-shrink-0 text-[#c09b5a]">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 4a2 2 0 114 0v1e-7a2 2 0 01-2 2h-1v1.5a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5V6h-1a2 2 0 01-2-2V4a2 2 0 114 0v1e-7M4 13h16M4 17h16M4 21h16"></path></svg>
-                    </div>
-                    <div class="text-left">
-                        <p class="text-xs font-bold text-[#171615] leading-tight">Design Consultation</p>
-                        <p class="text-[10px] text-[#78716c]">Plan your dream space</p>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-center gap-2.5 px-2">
-                    <div class="w-8 h-8 rounded-full bg-white border border-[#e2ddd5] flex items-center justify-center flex-shrink-0 text-[#c09b5a]">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 102 0 1 1 0 00-2 0zm7 0a1 1 0 102 0 1 1 0 00-2 0z"></path></svg>
-                    </div>
-                    <div class="text-left">
-                        <p class="text-xs font-bold text-[#171615] leading-tight">Delivery &amp; Installation</p>
-                        <p class="text-[10px] text-[#78716c]">Hassle-free support</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Main Content -->
         <main class="flex-grow">
             <!-- Flash Alerts -->
             @if(session('success'))
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+                <div class="max-w-[1550px] mx-auto px-4 sm:px-6 lg:px-8 mt-4">
                     <div class="bg-[#f5f0ea] border border-[#c09b5a] text-[#171615] px-4 py-3 rounded-xl flex items-center justify-between text-xs font-semibold">
                         <span>{{ session('success') }}</span>
                     </div>
@@ -275,13 +242,16 @@
 
         <!-- Pristo Footer -->
         <footer class="bg-[#171615] text-[#a39e97] pt-14 pb-8 border-t border-[#262422]">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
+            <div class="max-w-[1550px] mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
                 
                 <!-- Col 1: Brand Info -->
                 <div class="space-y-4">
-                    <a href="/" class="flex flex-col items-start">
-                        <span class="font-serif-pristo font-bold text-2xl tracking-[0.2em] text-white">PRISTO</span>
-                        <span class="text-[9px] uppercase tracking-[0.3em] font-medium text-[#c09b5a]">SPACES INSPIRED</span>
+                    <a href="/" class="flex items-center gap-3">
+                        <img src="{{ asset('images/logo.jpeg') }}" alt="PRISTO ENTERPRISES Logo" class="h-11 w-auto object-contain rounded-md border border-[#333]">
+                        <div class="flex flex-col">
+                            <span class="font-serif-pristo font-bold text-xl tracking-[0.18em] text-white">PRISTO</span>
+                            <span class="text-[9px] uppercase tracking-[0.3em] font-medium text-[#c09b5a]">ENTERPRISES</span>
+                        </div>
                     </a>
                 </div>
 
@@ -334,7 +304,7 @@
                 </div>
             </div>
 
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-6 border-t border-[#242220] flex flex-col md:flex-row justify-between items-center text-[11px] text-[#78716c]">
+            <div class="max-w-[1550px] mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-6 border-t border-[#242220] flex flex-col md:flex-row justify-between items-center text-[11px] text-[#78716c]">
                 <p>© 2026 Pristo. All rights reserved.</p>
                 <p class="italic">Better Space. A Brighter Tomorrow.</p>
             </div>

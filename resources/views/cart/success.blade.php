@@ -37,7 +37,7 @@
                 <div class="divide-y text-sm">
                     @foreach($order->items as $item)
                         <div class="py-3 flex justify-between">
-                            <span class="text-slate-600">{{ $item->product->name }} <strong class="text-slate-900">x{{ $item->quantity }}</strong></span>
+                            <span class="text-slate-600">{{ $item->product->name ?? ($item->product_name ?? 'Product #' . $item->product_id) }} <strong class="text-slate-900">x{{ $item->quantity }}</strong></span>
                             <span class="font-bold text-slate-900">₹{{ number_format($item->total, 2) }}</span>
                         </div>
                     @endforeach

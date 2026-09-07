@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" fill="#faf8f5"/>
+  <g transform="translate(45, 15)">
+    <!-- Vertical Column Rail -->
+    <rect x="50" y="20" width="10" height="150" rx="4" fill="url(#darkMetal)"/>
+    <!-- Top Overhead Rain Shower Arm -->
+    <path d="M 55,30 L 95,30 L 95,45" stroke="#171615" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <!-- Overhead Shower Head Disk -->
+    <ellipse cx="95" cy="48" rx="25" ry="8" fill="#171615" stroke="#c09b5a" stroke-width="2"/>
+    <!-- Water Drops -->
+    <path d="M 80,60 L 80,85 M 95,60 L 95,95 M 110,60 L 110,85" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" opacity="0.6" stroke-dasharray="4 4"/>
+    <!-- Thermostatic Valve Control Block -->
+    <rect x="35" y="120" width="40" height="22" rx="4" fill="#171615" stroke="#c09b5a" stroke-width="1.5"/>
+    <circle cx="45" cy="131" r="5" fill="#c09b5a"/>
+    <circle cx="65" cy="131" r="5" fill="#c09b5a"/>
+
+    <defs>
+      <linearGradient id="darkMetal" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#363330"/>
+        <stop offset="50%" stop-color="#171615"/>
+        <stop offset="100%" stop-color="#363330"/>
+      </linearGradient>
+    </defs>
+  </g>
+</svg>

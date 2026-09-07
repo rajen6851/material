@@ -42,9 +42,9 @@
 
                                     <!-- Product Details -->
                                     <td class="py-4 px-6 space-y-1">
-                                        <span class="font-semibold text-slate-800 text-sm block">{{ $quote->product->name }}</span>
+                                        <span class="font-semibold text-slate-800 text-sm block">{{ $quote->product->name ?? 'Product #' . $quote->product_id }}</span>
                                         <span class="text-slate-500 block">Required: <strong class="text-slate-800">{{ $quote->quantity }} boxes/units</strong></span>
-                                        <span class="text-slate-400 block">Product Price: ₹{{ $quote->product->price }} | MRP: ₹{{ $quote->product->mrp }}</span>
+                                        <span class="text-slate-400 block">Product Price: ₹{{ $quote->product->price ?? 0 }} | MRP: ₹{{ $quote->product->mrp ?? 0 }}</span>
                                         @if($quote->remarks)
                                             <span class="block text-slate-400 bg-slate-50 p-2 rounded border border-slate-100 mt-2"><strong>Notes:</strong> {{ $quote->remarks }}</span>
                                         @endif

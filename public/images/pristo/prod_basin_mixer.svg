@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" fill="#faf8f5"/>
+  <g transform="translate(40, 20)">
+    <!-- Base ring -->
+    <ellipse cx="60" cy="155" rx="35" ry="10" fill="#c09b5a"/>
+    <ellipse cx="60" cy="152" rx="32" ry="8" fill="#e5d0a6"/>
+    
+    <!-- Main Faucet Body Column -->
+    <path d="M 45,152 L 45,60 C 45,35 60,25 90,25 C 105,25 110,35 110,45 L 110,65" fill="none" stroke="url(#goldGrad)" stroke-width="16" stroke-linecap="round"/>
+    
+    <!-- Faucet Aerator Tip -->
+    <rect x="102" y="62" width="16" height="12" rx="2" fill="#171615"/>
+    <!-- Water Stream accent -->
+    <path d="M 110,74 L 110,130" stroke="#7dd3fc" stroke-width="4" stroke-linecap="round" opacity="0.6" stroke-dasharray="8 4"/>
+
+    <!-- Single Lever Handle on top -->
+    <rect x="35" y="45" width="30" height="8" rx="4" fill="#a48043" transform="rotate(-15 50 49)"/>
+
+    <defs>
+      <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#e5d0a6"/>
+        <stop offset="50%" stop-color="#c09b5a"/>
+        <stop offset="100%" stop-color="#8a6729"/>
+      </linearGradient>
+    </defs>
+  </g>
+</svg>

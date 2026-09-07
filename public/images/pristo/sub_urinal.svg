@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" fill="#faf8f5"/>
+  <g transform="translate(45, 15)">
+    <!-- Wall back plate -->
+    <path d="M 20,20 Q 55,5 90,20 L 90,130 C 90,160 20,160 20,130 Z" fill="#ffffff" stroke="#c09b5a" stroke-width="2.5"/>
+    <ellipse cx="55" cy="85" rx="25" ry="35" fill="#f4eeea" stroke="#d4cecf" stroke-width="2"/>
+    <circle cx="55" cy="25" r="4" fill="#c09b5a"/>
+  </g>
+</svg>

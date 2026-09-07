@@ -10,8 +10,11 @@ Route::get('/', function () {
     $rooms = \App\Models\Room::all();
     $categories = \App\Models\Category::with('subCategories')->get();
     $brands = \App\Models\Brand::all();
-    $featuredProducts = \App\Models\Product::where('is_featured', true)->take(8)->get();
-    $newProducts = \App\Models\Product::where('is_new', true)->take(8)->get();
+    $featuredProducts = \App\Models\Product::with(['brand', 'category', 'images'])->where('is_featured', true)->take(12)->get();
+    if ($featuredProducts->isEmpty()) {
+        $featuredProducts = \App\Models\Product::with(['brand', 'category', 'images'])->take(12)->get();
+    }
+    $newProducts = \App\Models\Product::with(['brand', 'category', 'images'])->where('is_new', true)->take(12)->get();
     
     return view('welcome', compact('banners', 'rooms', 'categories', 'brands', 'featuredProducts', 'newProducts'));
 });
@@ -59,6 +62,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/products', [AdminController::class, 'products'])->name('admin.products');
     Route::get('/admin/products/create', [AdminController::class, 'productCreate'])->name('admin.products.create');
     Route::post('/admin/products/store', [AdminController::class, 'productStore'])->name('admin.products.store');
+    Route::get('/admin/products/import', [AdminController::class, 'productImportForm'])->name('admin.products.import.form');
+    Route::post('/admin/products/import', [AdminController::class, 'productImportProcess'])->name('admin.products.import.process');
+    Route::get('/admin/products/import-sample', [AdminController::class, 'productImportSample'])->name('admin.products.import.sample');
     Route::get('/admin/products/{id}/edit', [AdminController::class, 'productEdit'])->name('admin.products.edit');
     Route::post('/admin/products/{id}/update', [AdminController::class, 'productUpdate'])->name('admin.products.update');
     Route::post('/admin/products/{id}/delete', [AdminController::class, 'productDelete'])->name('admin.products.delete');
