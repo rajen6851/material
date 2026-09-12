@@ -633,11 +633,14 @@ class AdminController extends Controller implements HasMiddleware
                 };
 
                 // 6. Pricing (MRP, Selling Price, Price per Box, Price per Sq.ft)
-                $mrpVal = $parseNum($getCol($row, ['MRP (Rs)', 'MRP', 'Price per Box', 'Price per box', 'Price/Box', 'Price', 'Dealer Cost'], 19), 0);
+                $mrpVal         = $parseNum($getCol($row, ['MRP (Rs)', 'MRP', 'Price', 'Dealer Cost'], 19), 0);
                 $sellingPriceVal = $parseNum($getCol($row, ['Selling Price (Rs)', 'Selling Price', 'Recommended Selling Price', 'Offer Price']), 0);
-                $pricePerSqft = $parseNum($getCol($row, ['Price per Sq.Ft', 'Price per Sq Ft', 'Price per sq.ft', 'Price per sqft', 'Rate per sq fett', 'Rate per sq ft'], 20), 0);
+                $pricePerBox    = $parseNum($getCol($row, ['Price per Box', 'Price per box', 'Price/Box', 'PricePerBox'], 19), 0);
+                $pricePerSqft   = $parseNum($getCol($row, ['Price per Sq.Ft', 'Price per Sq Ft', 'Price per sq.ft', 'Price per sqft', 'Rate per sq fett', 'Rate per sq ft'], 20), 0);
 
-                $mrp = $mrpVal > 0 ? $mrpVal : ($sellingPriceVal > 0 ? $sellingPriceVal : ($pricePerSqft > 0 ? $pricePerSqft * 16 : 500));
+                // Derive mrp and price from available values
+                if ($mrpVal <= 0 && $pricePerBox > 0) $mrpVal = $pricePerBox;
+                $mrp   = $mrpVal   > 0 ? $mrpVal   : ($sellingPriceVal > 0 ? $sellingPriceVal : ($pricePerSqft > 0 ? $pricePerSqft * 16 : 500));
                 $price = $sellingPriceVal > 0 ? $sellingPriceVal : ($pricePerSqft > 0 ? $pricePerSqft : ($mrpVal > 0 ? $mrpVal : 50));
 
                 // 7. Stock Status
