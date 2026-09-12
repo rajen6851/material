@@ -533,19 +533,36 @@ class AdminController extends Controller implements HasMiddleware
                     if ($dc) $tileName = 'Tile ' . $dc;
                 }
 
-                // Extended fallback: scan columns 0-4 for first meaningful text
+                // Extended fallback: scan columns 0-4 for first meaningful text (max 255 chars)
                 if (!$tileName) {
                     foreach ([0, 1, 3, 4, 5] as $tryIdx) {
                         $tryVal = isset($row[$tryIdx]) ? trim((string)$row[$tryIdx]) : '';
-                        if (strlen($tryVal) >= 3 && !is_numeric($tryVal)) {
+                        if (strlen($tryVal) >= 3 && strlen($tryVal) <= 255 && !is_numeric($tryVal)) {
                             $tileName = $tryVal;
                             break;
                         }
                     }
                 }
 
+                // Skip rows that look like metadata / disclaimer / instruction notes
+                $tileNameStr   = (string)$tileName;
+                $tileNameLower = strtolower($tileNameStr);
+                $metadataPrefixes = [
+                    'source data:', 'note:', 'notes:', 'disclaimer:', 'important:',
+                    'instructions:', 'do not ', 'this file', 'all rights', 'confidential',
+                    'hsn code', 'pending erp', 'data feed'
+                ];
+                foreach ($metadataPrefixes as $prefix) {
+                    if (str_starts_with($tileNameLower, $prefix)) {
+                        continue 2; // skip this row silently
+                    }
+                }
+                // Also skip if name exceeds DB column length
+                if (strlen($tileNameStr) > 255) {
+                    continue;
+                }
+
                 // Skip if this looks like another header row
-                $tileNameLower = strtolower((string)$tileName);
                 if (in_array($tileNameLower, ['tile name', 'name', 'product name', 'design name', 'item name', 's.no', 'sno'])) {
                     continue;
                 }
@@ -628,22 +645,28 @@ class AdminController extends Controller implements HasMiddleware
                 $brandId = $defaultBrandId;
                 if ($brandName) {
                     $cleanBrand = trim($brandName);
-                    // Use Manufacturer if Brand is generic
                     if (in_array(strtolower($cleanBrand), ['pristo', 'generic', ''])) {
                         $mfr = $getCol($row, ['Manufacturer']);
                         if ($mfr) $cleanBrand = trim($mfr);
                     }
+                    $brandSlug = Str::slug($cleanBrand);
                     if (isset($brandsMap[$cleanBrand])) {
                         $brandId = $brandsMap[$cleanBrand];
+                    } elseif (isset($brandsMap[$brandSlug])) {
+                        $brandId = $brandsMap[$brandSlug];
                     } else {
-                        $newBrand = Brand::create([
-                            'name' => $cleanBrand,
-                            'slug' => Str::slug($cleanBrand)
-                        ]);
-                        $brandsMap[$cleanBrand] = $newBrand->id;
-                        $brandId = $newBrand->id;
+                        try {
+                            $nb = Brand::firstOrCreate(['slug' => $brandSlug], ['name' => $cleanBrand]);
+                            $brandsMap[$cleanBrand] = $nb->id;
+                            $brandsMap[$brandSlug]  = $nb->id;
+                            $brandId = $nb->id;
+                        } catch (\Illuminate\Database\QueryException $qe) {
+                            $eb = Brand::where('slug', $brandSlug)->first();
+                            if ($eb) { $brandsMap[$cleanBrand] = $eb->id; $brandsMap[$brandSlug] = $eb->id; $brandId = $eb->id; }
+                        }
                     }
                 }
+
 
                 // 5. SKU / Product Code / Article Number / Design Code
                 $sku = $getCol($row, ['SKU / Product Code', 'SKU/Product Code', 'SKU', 'Art No', 'Article Number', 'Design Code', 'Product Code', 'Supplier SKU', 'Code'], 15);
