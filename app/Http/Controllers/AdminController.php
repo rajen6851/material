@@ -521,14 +521,32 @@ class AdminController extends Controller implements HasMiddleware
                     continue;
                 }
 
-                // 1. Product Name
-                $tileName = $getCol($row, ['Product Name', 'Tile Name', 'TileName', 'Design Name', 'Name', 'Title', 'Product', 'Item Name', 'Tile'], 2);
-                if (!$tileName && $getCol($row, ['Design Code'])) {
-                    $tileName = 'Tile ' . $getCol($row, ['Design Code']);
+                // 1. Product Name — handles all 8 formats
+                $tileName = $getCol($row, [
+                    'Product Name', 'Tile Name', 'TileName', 'Design Name', 'Name', 'Title',
+                    'Product', 'Item Name', 'Tile'
+                ], 2);
+
+                // Format 8: Design Code as name
+                if (!$tileName) {
+                    $dc = $getCol($row, ['Design Code']);
+                    if ($dc) $tileName = 'Tile ' . $dc;
                 }
-                
-                // Skip header row if re-encountered
-                if (strtolower((string)$tileName) === 'tile name' || strtolower((string)$tileName) === 'name' || strtolower((string)$tileName) === 'product name') {
+
+                // Extended fallback: scan columns 0-4 for first meaningful text
+                if (!$tileName) {
+                    foreach ([0, 1, 3, 4, 5] as $tryIdx) {
+                        $tryVal = isset($row[$tryIdx]) ? trim((string)$row[$tryIdx]) : '';
+                        if (strlen($tryVal) >= 3 && !is_numeric($tryVal)) {
+                            $tileName = $tryVal;
+                            break;
+                        }
+                    }
+                }
+
+                // Skip if this looks like another header row
+                $tileNameLower = strtolower((string)$tileName);
+                if (in_array($tileNameLower, ['tile name', 'name', 'product name', 'design name', 'item name', 's.no', 'sno'])) {
                     continue;
                 }
 
@@ -537,6 +555,7 @@ class AdminController extends Controller implements HasMiddleware
                     $failedCount++;
                     continue;
                 }
+
 
                 // 2. Category
                 $categoryName = $getCol($row, ['Category', 'Cat'], 4);
@@ -595,11 +614,16 @@ class AdminController extends Controller implements HasMiddleware
                     }
                 }
 
-                // 4. Brand
-                $brandName = $getCol($row, ['Brand', 'Manufacturer', 'Supplier']);
+                // 4. Brand — formats 3,4,6,7 have Brand/Manufacturer columns
+                $brandName = $getCol($row, ['Brand', 'Manufacturer', 'Supplier', 'Vendor']);
                 $brandId = $defaultBrandId;
                 if ($brandName) {
                     $cleanBrand = trim($brandName);
+                    // Use Manufacturer if Brand is generic
+                    if (in_array(strtolower($cleanBrand), ['pristo', 'generic', ''])) {
+                        $mfr = $getCol($row, ['Manufacturer']);
+                        if ($mfr) $cleanBrand = trim($mfr);
+                    }
                     if (isset($brandsMap[$cleanBrand])) {
                         $brandId = $brandsMap[$cleanBrand];
                     } else {
@@ -632,15 +656,28 @@ class AdminController extends Controller implements HasMiddleware
                     return is_numeric($clean) ? (float)$clean : $default;
                 };
 
-                // 6. Pricing (MRP, Selling Price, Price per Box, Price per Sq.ft)
-                $mrpVal         = $parseNum($getCol($row, ['MRP (Rs)', 'MRP', 'Price', 'Dealer Cost'], 19), 0);
+                // 6. Pricing — handles all 8 formats
+                $mrpVal          = $parseNum($getCol($row, ['MRP (Rs)', 'MRP']), 0);
+                $dealerDiscPct   = $parseNum($getCol($row, ['Dealer Discount %', 'Discount %', 'Discount', 'Dealer Discount']), 0);
+                $dealerCostVal   = $parseNum($getCol($row, ['Dealer Cost', 'Landing Cost']), 0);
                 $sellingPriceVal = $parseNum($getCol($row, ['Selling Price (Rs)', 'Selling Price', 'Recommended Selling Price', 'Offer Price']), 0);
-                $pricePerBox    = $parseNum($getCol($row, ['Price per Box', 'Price per box', 'Price/Box', 'PricePerBox'], 19), 0);
-                $pricePerSqft   = $parseNum($getCol($row, ['Price per Sq.Ft', 'Price per Sq Ft', 'Price per sq.ft', 'Price per sqft', 'Rate per sq fett', 'Rate per sq ft'], 20), 0);
+                $pricePerBox     = $parseNum($getCol($row, ['Price per Box', 'Price per box', 'Price/Box', 'PricePerBox']), 0);
+                $pricePerSqft    = $parseNum($getCol($row, ['Price per Sq.Ft', 'Price per Sq Ft', 'Price per sq.ft', 'Price per sqft', 'Rate per sq fett', 'Rate per sq ft', 'Price per Sq ft']), 0);
 
-                // Derive mrp and price from available values
+                // Compute dealer cost from MRP - discount% if not given directly (formats 4,6)
+                if ($dealerCostVal <= 0 && $mrpVal > 0 && $dealerDiscPct > 0) {
+                    $dealerCostVal = round($mrpVal * (1 - $dealerDiscPct / 100), 2);
+                }
+                // Derive selling price: prefer explicit, then dealer cost, then computed
+                if ($sellingPriceVal <= 0 && $dealerCostVal > 0) {
+                    $sellingPriceVal = round($dealerCostVal * 1.136, 2); // ~13.6% margin
+                }
+                // Price per box fallback
+                if ($pricePerBox <= 0 && $mrpVal > 0) $pricePerBox = $mrpVal;
+                // MRP fallback from pricePerBox
                 if ($mrpVal <= 0 && $pricePerBox > 0) $mrpVal = $pricePerBox;
-                $mrp   = $mrpVal   > 0 ? $mrpVal   : ($sellingPriceVal > 0 ? $sellingPriceVal : ($pricePerSqft > 0 ? $pricePerSqft * 16 : 500));
+
+                $mrp   = $mrpVal > 0 ? $mrpVal : ($sellingPriceVal > 0 ? $sellingPriceVal : ($pricePerSqft > 0 ? $pricePerSqft * 16 : 500));
                 $price = $sellingPriceVal > 0 ? $sellingPriceVal : ($pricePerSqft > 0 ? $pricePerSqft : ($mrpVal > 0 ? $mrpVal : 50));
 
                 // 7. Stock Status
@@ -654,18 +691,32 @@ class AdminController extends Controller implements HasMiddleware
                     }
                 }
 
-                // 8. Specs & Dimensions
-                $widthMm = $parseNum($getCol($row, ['Width (mm)', 'Width(mm)', 'Width', 'Length (mm)'], 7), 600);
-                $heightMm = $parseNum($getCol($row, ['Height (mm)', 'Height(mm)', 'Height'], 8), 1200);
-                $thickness = $getCol($row, ['Thickness (mm)', 'Thickness(mm)', 'Thickness'], 10) ?? '9 MM';
-                $size = $getCol($row, ['Size (mm)', 'Size', 'Size(mm)', 'Variant/Size'], 9) ?? ($widthMm . 'x' . $heightMm . 'mm');
-                $sizeInch = $getCol($row, ['Size (Inch)', 'Size (inch)', 'Size(inch)', 'Size (Inches)'], 11) ?? '24x48';
-                $collection = $getCol($row, ['Collection', 'Collection / Series', 'Series'], 3) ?? 'Standard';
+                // 8. Specs & Dimensions — handles width/height OR Size(mm) string
+                $widthMm  = $parseNum($getCol($row, ['Width (mm)', 'Width(mm)', 'Width', 'Length (mm)']), 0);
+                $heightMm = $parseNum($getCol($row, ['Height (mm)', 'Height(mm)', 'Height']), 0);
+                $size     = $getCol($row, ['Size (mm)', 'Size', 'Size(mm)', 'Variant/Size']);
 
-                // Sub Category
-                $subCategory = $getCol($row, ['Sub Category', 'SubCategory', 'Sub-Category'], 5);
+                // If size string given (e.g. "600x1200mm"), parse width/height from it
+                if ($size && ($widthMm <= 0 || $heightMm <= 0)) {
+                    if (preg_match('/^(\d+)[xX\s*](\d+)/', $size, $dimMatch)) {
+                        if ($widthMm  <= 0) $widthMm  = (float)$dimMatch[1];
+                        if ($heightMm <= 0) $heightMm = (float)$dimMatch[2];
+                    }
+                }
+                $widthMm  = $widthMm  > 0 ? $widthMm  : 600;
+                $heightMm = $heightMm > 0 ? $heightMm : 1200;
+                $size     = $size ?: ($widthMm . 'x' . $heightMm . 'mm');
+
+                $thickness  = $getCol($row, ['Thickness (mm)', 'Thickness(mm)', 'Thickness']) ?? '9 MM';
+                $sizeInch   = $getCol($row, ['Size (Inch)', 'Size (inch)', 'Size(inch)', 'Size (Inches)']) ?? '24x48';
+                $collection = $getCol($row, ['Collection', 'Collection / Series', 'Series', 'Collection/Series']) ?? 'Standard';
+                $color      = $getCol($row, ['Color', 'Colour', 'Color Variants']) ?? 'White';
+                $material   = $getCol($row, ['Material', 'Body Material']) ?? null;
+
+                // Sub Category — prefer explicit, then derive from collection/product type
+                $subCategory = $getCol($row, ['Sub Category', 'SubCategory', 'Sub-Category']);
                 if (!$subCategory) {
-                    if (stripos($collection, 'Parking') !== false) {
+                    if (stripos((string)$collection, 'Parking') !== false) {
                         $subCategory = 'Parking Tiles';
                     } elseif ($getCol($row, ['Product Type'])) {
                         $subCategory = $getCol($row, ['Product Type']);
@@ -674,21 +725,27 @@ class AdminController extends Controller implements HasMiddleware
                     }
                 }
 
-                $finish = $getCol($row, ['Finish', 'Surface Aesthetic'], 6) ?? 'Standard';
-                $patternType = $getCol($row, ['Pattern Types', 'Pattern Type', 'PatternType', 'Pattern'], 13) ?? 'Standard';
-                $edgeType = $getCol($row, ['Edge Type', 'EdgeType', 'Edge'], 14) ?? 'Square';
-                $piecesPerBox = (int)$parseNum($getCol($row, ['Pieces per Box', 'Pieces per box', 'Pieces/Box', 'Tiles per Box'], 16), 2);
-                $coveragePerBox = $parseNum($getCol($row, ['Coverage per Box (sq.ft)', 'Coverage per Box (Sq Ft)', 'Coverage per box (sqft)', 'Coverage'], 17), 16);
-                $weightPerBox = $parseNum($getCol($row, ['Weight per Box (kg/ft)', 'Weight per Box (kg)', 'Box Weight (Kg)', 'Weight'], 18), 30);
-                $areaTileSqft = $parseNum($getCol($row, ['Area/Tile (sq.ft)', 'Area/Tile (sqft)', 'Area/Tile'], 12), 8);
+                $finish       = $getCol($row, ['Finish', 'Surface Aesthetic']) ?? 'Standard';
+                $patternType  = $getCol($row, ['Pattern Types', 'Pattern Type', 'PatternType', 'Pattern']) ?? 'Standard';
+                $edgeType     = $getCol($row, ['Edge Type', 'EdgeType', 'Edge']) ?? 'Square';
+                $piecesPerBox = (int)$parseNum($getCol($row, ['Pieces per Box', 'Pieces per box', 'Pieces/Box', 'Tiles per Box']), 2);
+                $coveragePerBox = $parseNum($getCol($row, ['Coverage per Box (sq.ft)', 'Coverage per Box (Sq Ft)', 'Coverage per box (sqft)', 'Coverage per Box (Sq M)', 'Coverage']), 16);
+                $weightPerBox   = $parseNum($getCol($row, ['Weight per Box (kg/ft)', 'Weight per Box (kg)', 'Box Weight (Kg)', 'Weight']), 30);
+                $areaTileSqft   = $parseNum($getCol($row, ['Area/Tile (sq.ft)', 'Area/Tile (sqft)', 'Area/Tile']), 8);
 
-                // Descriptions & Meta
-                $shortDesc = $getCol($row, ['Short Description', 'ShortDescription', 'Description'], 24);
-                $longDesc = $getCol($row, ['Long Description', 'Long Description / Bullets', 'Key Features']);
-                $metaDesc = $getCol($row, ['SEO Meta Description', 'Meta Description', 'SEO Meta Title'], 25);
+                // Descriptions & Meta — disambiguate SEO Title vs Meta Title
+                $shortDesc = $getCol($row, ['Short Description', 'ShortDescription', 'Description']);
+                $longDesc  = $getCol($row, ['Long Description', 'Long Description / Bullets', 'Key Features']);
+                $metaDesc  = $getCol($row, ['SEO Meta Description', 'Meta Description']);
                 $metaTitle = $getCol($row, ['SEO Meta Title', 'SEO Title', 'Meta Title']) ?? "Buy {$tileName} Online";
-                $catalogPage = $getCol($row, ['Catalog Page', 'CatalogPage', 'Page'], 27);
-                $tileImage = $getCol($row, ['Tile Image', 'Tile Image (Light/Var.1)', 'TileImage', 'Image', 'Image Path'], 1);
+
+                // Format 2: Meta Title is different from SEO Title
+                if (!$metaDesc) {
+                    $metaDesc = $getCol($row, ['Meta Description', 'SEO Meta Description', 'Keywords / Tags']);
+                }
+
+                $catalogPage = $getCol($row, ['Catalog Page', 'CatalogPage', 'Page']);
+                $tileImage   = $getCol($row, ['Tile Image', 'Tile Image (Light/Var.1)', 'TileImage', 'Image', 'Image Path']);
 
                 $productData = [
                     'name' => $tileName,
@@ -706,8 +763,8 @@ class AdminController extends Controller implements HasMiddleware
                     'collection' => $collection,
                     'sub_category' => $subCategory,
                     'finish' => $finish,
-                    'material' => $subCategory ?: 'GVT',
-                    'color' => 'White',
+                    'material' => $material ?? ($subCategory ?: 'GVT'),
+                    'color'    => $color,
                     'size' => $size,
                     'width_mm' => $widthMm,
                     'height_mm' => $heightMm,
