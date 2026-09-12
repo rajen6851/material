@@ -16,7 +16,67 @@ Route::get('/', function () {
     }
     $newProducts = \App\Models\Product::with(['brand', 'category', 'images'])->where('is_new', true)->take(12)->get();
     
-    return view('welcome', compact('banners', 'rooms', 'categories', 'brands', 'featuredProducts', 'newProducts'));
+    // Dynamically build bathroom categories & subcategories from DB
+    $bathroomRoom = \App\Models\Room::where('slug', 'bathroom')->first();
+    $bathroomProducts = $bathroomRoom ? \App\Models\Product::with(['category', 'images'])->where('room_id', $bathroomRoom->id)->get() : collect();
+
+    $bathroomCategoriesData = [];
+    foreach ($categories as $cat) {
+        $catProducts = $bathroomProducts->where('category_id', $cat->id);
+        
+        $subItems = [];
+        $addedSlugs = [];
+
+        // 1. Include all official subcategories from sub_categories table
+        if ($cat->subCategories->isNotEmpty()) {
+            foreach ($cat->subCategories as $sc) {
+                $matchingProds = $catProducts->filter(function($p) use ($sc) {
+                    return \Illuminate\Support\Str::slug($p->sub_category) === $sc->slug 
+                        || stripos($p->sub_category, $sc->name) !== false
+                        || stripos($sc->name, (string)$p->sub_category) !== false;
+                });
+                $firstProd = $matchingProds->first();
+                $subItems[] = [
+                    'name' => $sc->name,
+                    'slug' => $sc->slug,
+                    'category_slug' => $cat->slug,
+                    'image' => $firstProd ? asset($firstProd->featured_image) : ($sc->image ? asset($sc->image) : asset($cat->image)),
+                    'count' => $matchingProds->count(),
+                ];
+                $addedSlugs[] = $sc->slug;
+            }
+        }
+
+        // 2. Also include any product sub_category not already captured
+        $dbSubs = $catProducts->groupBy('sub_category');
+        foreach ($dbSubs as $subName => $prods) {
+            if ($subName) {
+                $subSlug = \Illuminate\Support\Str::slug($subName);
+                if (!in_array($subSlug, $addedSlugs)) {
+                    $first = $prods->first();
+                    $subItems[] = [
+                        'name' => $subName,
+                        'slug' => $subSlug,
+                        'category_slug' => $cat->slug,
+                        'image' => $first ? asset($first->featured_image) : asset($cat->image),
+                        'count' => $prods->count(),
+                    ];
+                    $addedSlugs[] = $subSlug;
+                }
+            }
+        }
+
+        if (!empty($subItems)) {
+            $bathroomCategoriesData[$cat->slug] = [
+                'title' => $cat->name,
+                'slug' => $cat->slug,
+                'description' => 'Explore luxury ' . strtolower($cat->name) . ' solutions for bathroom.',
+                'items' => $subItems,
+            ];
+        }
+    }
+
+    return view('welcome', compact('banners', 'rooms', 'categories', 'brands', 'featuredProducts', 'newProducts', 'bathroomCategoriesData'));
 });
 
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
@@ -24,6 +84,22 @@ Route::get('/products/{slug}', [ProductController::class, 'show'])->name('produc
 
 use App\Http\Controllers\CategoryController;
 Route::get('/category/{category:slug}', [CategoryController::class, 'show'])->name('category.show');
+
+use App\Http\Controllers\RoomController;
+Route::get('/spaces/{room:slug}', [RoomController::class, 'show'])->name('rooms.show');
+Route::get('/rooms/{room:slug}', [RoomController::class, 'show']);
+
+use App\Http\Controllers\InspirationController;
+Route::get('/inspiration', [InspirationController::class, 'index'])->name('inspiration.index');
+Route::get('/gallery', [InspirationController::class, 'index'])->name('gallery.index');
+
+use App\Http\Controllers\PageController;
+Route::get('/contact', [PageController::class, 'contact'])->name('contact');
+Route::post('/contact', [PageController::class, 'contactSubmit'])->name('contact.submit');
+Route::get('/about', [PageController::class, 'about'])->name('about');
+Route::get('/about-us', [PageController::class, 'about']);
+Route::get('/terms-conditions', [PageController::class, 'terms'])->name('terms');
+Route::get('/terms', [PageController::class, 'terms']);
 
 // Cart Routes
 Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
@@ -52,11 +128,15 @@ Route::middleware('auth')->group(function () {
     // Admin Routes
     Route::get('/admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::get('/admin/orders', [AdminController::class, 'orders'])->name('admin.orders');
+    Route::get('/admin/orders/{id}', [AdminController::class, 'orderShow'])->name('admin.orders.show');
+    Route::get('/admin/orders/{id}/invoice', [AdminController::class, 'orderInvoice'])->name('admin.orders.invoice');
     Route::post('/admin/orders/{id}/status', [AdminController::class, 'updateOrderStatus'])->name('admin.orders.status');
     Route::get('/admin/quotations', [AdminController::class, 'quotations'])->name('admin.quotations');
     Route::post('/admin/quotations/{id}/respond', [AdminController::class, 'respondQuotation'])->name('admin.quotations.respond');
     Route::get('/admin/visits', [AdminController::class, 'visits'])->name('admin.visits');
     Route::post('/admin/visits/{id}/status', [AdminController::class, 'updateVisitStatus'])->name('admin.visits.status');
+    Route::get('/admin/inquiries', [AdminController::class, 'inquiries'])->name('admin.inquiries');
+    Route::post('/admin/inquiries/{id}/status', [AdminController::class, 'inquiryStatus'])->name('admin.inquiries.status');
 
     // Admin CRUD: Products
     Route::get('/admin/products', [AdminController::class, 'products'])->name('admin.products');

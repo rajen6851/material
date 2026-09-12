@@ -416,8 +416,8 @@ class CartController extends Controller
             }
         }
 
-        $shipping = $subtotal > 0 ? ($subtotal > 5000 ? 0 : 350) : 0; // Free delivery above ₹5,000
-        $total = ($subtotal - $discount) + $shipping;
+        $shipping = 0; // Freight and delivery charges applicable at actuals upon dispatch
+        $total = max(0, $subtotal - $discount);
 
         return compact('subtotal', 'totalTax', 'discount', 'shipping', 'total', 'coupon');
     }

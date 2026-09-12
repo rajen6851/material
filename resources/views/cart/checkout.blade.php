@@ -157,13 +157,9 @@
                             </div>
                         @endif
 
-                        <div class="flex justify-between">
-                            <span>Shipping</span>
-                            @if($shipping === 0)
-                                <span class="font-bold text-teal-600 uppercase text-xs">Free</span>
-                            @else
-                                <span class="font-semibold text-slate-800">₹{{ number_format($shipping, 2) }}</span>
-                            @endif
+                        <div class="flex justify-between items-center">
+                            <span>Shipping &amp; Delivery</span>
+                            <span class="font-bold text-[#b58d56] uppercase text-xs">Charges Applicable</span>
                         </div>
 
                         <div class="flex justify-between text-xs text-slate-400">

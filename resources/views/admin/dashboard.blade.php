@@ -1,22 +1,22 @@
 <x-admin-layout>
-    <x-slot name="title">Admin Command Center - BuildMart</x-slot>
+    <x-slot name="title">Admin Command Center - Pristo Enterprises</x-slot>
 
     <div class="space-y-8">
         <!-- Main Header -->
         <div class="flex justify-between items-center border-b pb-4">
             <div>
                 <h1 class="text-3xl font-black text-slate-900">Admin Command Center</h1>
-                <p class="text-slate-500 text-sm">Dashboard Management Center (Premium View)</p>
+                <p class="text-slate-500 text-sm">Dashboard Management Center (Pristo Luxury Surfaces)</p>
             </div>
         </div>
 
-        <!-- KPI Dashboard Indicators Row (Exactly as mockup) -->
+        <!-- KPI Dashboard Indicators Row -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Total Revenue Card -->
             <div class="bg-white border rounded-2xl p-6 shadow-sm flex items-center justify-between relative overflow-hidden">
                 <div class="space-y-1">
-                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Revenue</span>
-                    <span class="text-2xl font-black text-slate-900">₹10M</span>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Revenue (Paid)</span>
+                    <span class="text-2xl font-black text-slate-900">₹{{ number_format($totalRevenue, 0) }}</span>
                 </div>
                 <div class="w-16 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center font-bold text-lg">
                     📈
@@ -152,7 +152,11 @@
                         <tbody>
                             @foreach($recentOrders as $o)
                                 <tr class="border-b hover:bg-slate-50/50 transition">
-                                    <td class="py-3 px-4 font-mono font-bold text-slate-800">{{ $o->order_number }}</td>
+                                    <td class="py-3 px-4 font-mono font-bold text-slate-800">
+                                        <a href="{{ route('admin.orders.show', $o->id) }}" class="text-teal-700 hover:text-teal-900 hover:underline">
+                                            {{ $o->order_number }}
+                                        </a>
+                                    </td>
                                     <td class="py-3 px-4">{{ $o->name }}</td>
                                     <td class="py-3 px-4">{{ $o->created_at->format('d/M/Y') }}</td>
                                     <td class="py-3 px-4">
@@ -168,8 +172,8 @@
             <!-- Right: Order Details popup card (1/3 width) -->
             <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
                 <div class="border-b pb-3 flex justify-between items-center">
-                    <h3 class="font-extrabold text-slate-800 text-sm">Order Detail</h3>
-                    <button class="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
+                    <h3 class="font-extrabold text-slate-800 text-sm">Latest Order Preview</h3>
+                    <a href="{{ route('admin.orders') }}" class="text-xs text-teal-600 hover:underline font-bold">View All ➔</a>
                 </div>
 
                 @if($recentOrders->count() > 0)
@@ -188,6 +192,15 @@
                                     <span class="font-bold text-slate-900">₹{{ number_format($item->total, 0) }}</span>
                                 </div>
                             @endforeach
+                        </div>
+
+                        <div class="pt-2 flex gap-2">
+                            <a href="{{ route('admin.orders.show', $firstOrder->id) }}" class="flex-1 bg-[#0d2238] hover:bg-slate-800 text-white text-center py-2 rounded-xl text-[11px] font-bold transition">
+                                View Details
+                            </a>
+                            <a href="{{ route('admin.orders.invoice', $firstOrder->id) }}" target="_blank" class="bg-amber-50 border border-amber-300 text-amber-900 hover:bg-amber-100 text-center px-3 py-2 rounded-xl text-[11px] font-bold transition">
+                                🖨️ Invoice
+                            </a>
                         </div>
                     </div>
                 @else

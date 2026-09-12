@@ -56,9 +56,13 @@
                         <span>-₹{{ number_format($order->discount, 2) }}</span>
                     </div>
                 @endif
-                <div class="flex justify-between">
+                <div class="flex justify-between items-center">
                     <span>Shipping</span>
-                    <span>₹{{ number_format($order->shipping, 2) }}</span>
+                    @if($order->shipping > 0)
+                        <span>₹{{ number_format($order->shipping, 2) }}</span>
+                    @else
+                        <span class="font-bold text-[#b58d56] text-xs uppercase">Charges Applicable (At Actuals)</span>
+                    @endif
                 </div>
                 <div class="flex justify-between text-slate-900 font-extrabold text-base pt-2 border-t">
                     <span>Total Paid</span>

@@ -57,16 +57,63 @@ class AdminController extends Controller implements HasMiddleware
     }
 
     /**
-     * Manage Orders.
+     * Manage Orders with eager loaded items, products, and customer details.
      */
-    public function orders()
+    public function orders(Request $request)
     {
-        $orders = Order::orderBy('created_at', 'desc')->get();
-        return view('admin.orders', compact('orders'));
+        $status = $request->query('status');
+        $search = $request->query('search');
+
+        $query = Order::with(['items.product', 'user'])->orderBy('created_at', 'desc');
+
+        if ($status && $status !== 'all') {
+            $query->where('order_status', $status);
+        }
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $orders = $query->paginate(20)->withQueryString();
+
+        $counts = [
+            'all' => Order::count(),
+            'pending' => Order::where('order_status', 'pending')->count(),
+            'packed' => Order::where('order_status', 'packed')->count(),
+            'shipped' => Order::where('order_status', 'shipped')->count(),
+            'delivered' => Order::where('order_status', 'delivered')->count(),
+            'cancelled' => Order::where('order_status', 'cancelled')->count(),
+            'total_revenue' => Order::where('payment_status', 'paid')->sum('total'),
+        ];
+
+        return view('admin.orders', compact('orders', 'counts', 'status', 'search'));
     }
 
     /**
-     * Update Order Status.
+     * View Detailed Order Information.
+     */
+    public function orderShow($id)
+    {
+        $order = Order::with(['items.product', 'user'])->findOrFail($id);
+        return view('admin.orders.show', compact('order'));
+    }
+
+    /**
+     * Printable Official GST Tax Invoice.
+     */
+    public function orderInvoice($id)
+    {
+        $order = Order::with(['items.product', 'user'])->findOrFail($id);
+        return view('admin.orders.invoice', compact('order'));
+    }
+
+    /**
+     * Update Order Status and Payment Status.
      */
     public function updateOrderStatus(Request $request, $id)
     {
@@ -81,7 +128,38 @@ class AdminController extends Controller implements HasMiddleware
             'payment_status' => $request->input('payment_status')
         ]);
 
-        return redirect()->back()->with('success', 'Order status updated successfully.');
+        return redirect()->back()->with('success', 'Order #' . $order->order_number . ' status updated successfully.');
+    }
+
+    /**
+     * Manage Contact Inquiries.
+     */
+    public function inquiries(Request $request)
+    {
+        $status = $request->query('status', 'all');
+        $query = \App\Models\ContactInquiry::orderBy('created_at', 'desc');
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $inquiries = $query->paginate(20)->withQueryString();
+        $unreadCount = \App\Models\ContactInquiry::where('status', 'unread')->count();
+
+        return view('admin.inquiries', compact('inquiries', 'status', 'unreadCount'));
+    }
+
+    /**
+     * Update Inquiry Status.
+     */
+    public function inquiryStatus(Request $request, $id)
+    {
+        $inquiry = \App\Models\ContactInquiry::findOrFail($id);
+        $inquiry->update([
+            'status' => $request->input('status', 'replied')
+        ]);
+
+        return redirect()->back()->with('success', 'Inquiry marked as ' . $request->input('status') . '.');
     }
 
     /**
@@ -210,7 +288,7 @@ class AdminController extends Controller implements HasMiddleware
     public function productImportProcess(Request $request)
     {
         $request->validate([
-            'csv_file' => 'required|file|max:20480',
+            'csv_file' => 'required|file|max:20480|mimes:csv,txt,xlsx,xls,ods',
         ]);
 
         $file = $request->file('csv_file');
@@ -221,12 +299,99 @@ class AdminController extends Controller implements HasMiddleware
             return redirect()->back()->with('error', 'The uploaded file is empty.');
         }
 
-        // 1. Check if file is a binary XLSX / ZIP archive (starts with PK\x03\x04)
+        // ── 1. XLSX → CSV conversion (no external package needed) ──────────
         if (substr($fileContent, 0, 4) === "PK\x03\x04") {
-            return redirect()->back()->with('error', 'The uploaded file is an Excel (.xlsx) binary file. Please open it in Excel, click "Save As", and select "CSV (Comma delimited) (*.csv)" before uploading.');
+            try {
+                $zip = new \ZipArchive();
+                if ($zip->open($rawPath) !== true) {
+                    return redirect()->back()->with('error', 'Could not read the Excel file. Please make sure it is a valid .xlsx file.');
+                }
+
+                // Read shared strings (string table)
+                $sharedStrings = [];
+                $ssXml = $zip->getFromName('xl/sharedStrings.xml');
+                if ($ssXml) {
+                    $ss = simplexml_load_string($ssXml);
+                    foreach ($ss->si as $si) {
+                        // Each <si> may have <t> or <r><t>
+                        $text = '';
+                        if (isset($si->t)) {
+                            $text = (string) $si->t;
+                        } else {
+                            foreach ($si->r as $r) {
+                                $text .= (string) $r->t;
+                            }
+                        }
+                        $sharedStrings[] = $text;
+                    }
+                }
+
+                // Read first sheet (sheet1.xml)
+                $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
+                $zip->close();
+
+                if (!$sheetXml) {
+                    return redirect()->back()->with('error', 'Could not find sheet data in the Excel file.');
+                }
+
+                $sheet = simplexml_load_string($sheetXml);
+                $rows = [];
+
+                foreach ($sheet->sheetData->row as $row) {
+                    $rowData = [];
+                    $lastCol = 0;
+
+                    foreach ($row->c as $cell) {
+                        // Determine column index from cell ref (e.g. A1, B2, AA3)
+                        preg_match('/^([A-Z]+)/', (string)$cell['r'], $colMatch);
+                        $colLetters = $colMatch[1] ?? 'A';
+                        $colIndex = 0;
+                        foreach (str_split($colLetters) as $ch) {
+                            $colIndex = $colIndex * 26 + (ord($ch) - ord('A') + 1);
+                        }
+                        $colIndex--; // 0-based
+
+                        // Fill gaps with empty strings
+                        while ($lastCol < $colIndex) {
+                            $rowData[] = '';
+                            $lastCol++;
+                        }
+
+                        // Get cell value
+                        $type = (string)$cell['t'];
+                        $value = (string)$cell->v;
+
+                        if ($type === 's') {
+                            // Shared string
+                            $value = $sharedStrings[(int)$value] ?? '';
+                        } elseif ($type === 'inlineStr') {
+                            $value = (string)$cell->is->t;
+                        }
+                        // Numeric / date / boolean values come as-is
+
+                        $rowData[] = $value;
+                        $lastCol++;
+                    }
+
+                    $rows[] = $rowData;
+                }
+
+                // Convert rows array → CSV string
+                $csvBuffer = fopen('php://memory', 'r+');
+                foreach ($rows as $rowData) {
+                    fputcsv($csvBuffer, $rowData);
+                }
+                rewind($csvBuffer);
+                $fileContent = stream_get_contents($csvBuffer);
+                fclose($csvBuffer);
+
+            } catch (\Throwable $e) {
+                return redirect()->back()->with('error', 'Failed to parse Excel file: ' . $e->getMessage());
+            }
         }
 
-        // 2. Detect & convert multi-byte encodings (UTF-16LE, UTF-16BE, Windows-1252, ISO-8859-1) to UTF-8
+        // ── 2. Detect & convert multi-byte encodings to UTF-8 ──────────────
+
         $detected = mb_detect_encoding($fileContent, ['UTF-8', 'UTF-16LE', 'UTF-16BE', 'Windows-1252', 'ISO-8859-1', 'ASCII'], true);
         if ($detected && $detected !== 'UTF-8') {
             $fileContent = mb_convert_encoding($fileContent, 'UTF-8', $detected);
@@ -356,11 +521,14 @@ class AdminController extends Controller implements HasMiddleware
                     continue;
                 }
 
-                // Column C (index 2): Tile Name
-                $tileName = $getCol($row, ['Tile Name', 'TileName', 'Name', 'Product Name', 'Title', 'Product', 'Item Name', 'Tile'], 2);
+                // 1. Product Name
+                $tileName = $getCol($row, ['Product Name', 'Tile Name', 'TileName', 'Design Name', 'Name', 'Title', 'Product', 'Item Name', 'Tile'], 2);
+                if (!$tileName && $getCol($row, ['Design Code'])) {
+                    $tileName = 'Tile ' . $getCol($row, ['Design Code']);
+                }
                 
                 // Skip header row if re-encountered
-                if (strtolower($tileName) === 'tile name' || strtolower($tileName) === 'name') {
+                if (strtolower((string)$tileName) === 'tile name' || strtolower((string)$tileName) === 'name' || strtolower((string)$tileName) === 'product name') {
                     continue;
                 }
 
@@ -370,11 +538,20 @@ class AdminController extends Controller implements HasMiddleware
                     continue;
                 }
 
-                // Column E (index 4): Category
+                // 2. Category
                 $categoryName = $getCol($row, ['Category', 'Cat'], 4);
                 $categoryId = $defaultCategoryId;
                 if ($categoryName) {
                     $catClean = trim($categoryName);
+                    // Synonym normalization
+                    if (strcasecmp($catClean, 'Taps & Valves') === 0) {
+                        $catClean = 'Faucets';
+                    } elseif (strcasecmp($catClean, 'Flush Plates') === 0) {
+                        $catClean = 'Sanitaryware';
+                    } elseif (strcasecmp($catClean, 'TILES') === 0) {
+                        $catClean = 'Tiles';
+                    }
+
                     $catSlug = Str::slug($catClean);
                     if (isset($categoriesMap[$catClean])) {
                         $categoryId = $categoriesMap[$catClean];
@@ -382,7 +559,7 @@ class AdminController extends Controller implements HasMiddleware
                         $categoryId = $categoriesSlugMap[$catSlug];
                     } else {
                         $newCat = Category::create([
-                            'name' => $catClean,
+                            'name' => ucwords($catClean),
                             'slug' => $catSlug,
                             'image' => 'images/categories/tiles.svg'
                         ]);
@@ -392,8 +569,22 @@ class AdminController extends Controller implements HasMiddleware
                     }
                 }
 
-                // Column V (index 21): Application Area
+                // 3. Room / Application Area
                 $appArea = $getCol($row, ['Application Area', 'ApplicationArea', 'Room', 'Application'], 21);
+                if (!$appArea) {
+                    if (strtoupper((string)$getCol($row, ['Bathroom'])) === 'YES') {
+                        $appArea = 'Bathroom';
+                    } elseif (strtoupper((string)$getCol($row, ['Kitchen'])) === 'YES') {
+                        $appArea = 'Kitchen';
+                    } elseif (strtoupper((string)$getCol($row, ['Living Room'])) === 'YES') {
+                        $appArea = 'Living Room';
+                    } elseif (strtoupper((string)$getCol($row, ['Outdoor'])) === 'YES' || strtoupper((string)$getCol($row, ['Parking'])) === 'YES') {
+                        $appArea = 'Outdoor';
+                    } elseif (strcasecmp((string)$categoryName, 'Sanitaryware') === 0 || strcasecmp((string)$categoryName, 'Taps & Valves') === 0 || strcasecmp((string)$categoryName, 'Faucets') === 0) {
+                        $appArea = 'Bathroom';
+                    }
+                }
+
                 $roomId = $defaultRoomId;
                 if ($appArea) {
                     foreach ($roomsMap as $rName => $rId) {
@@ -404,42 +595,53 @@ class AdminController extends Controller implements HasMiddleware
                     }
                 }
 
-                $brandName = $getCol($row, ['Brand']);
+                // 4. Brand
+                $brandName = $getCol($row, ['Brand', 'Manufacturer', 'Supplier']);
                 $brandId = $defaultBrandId;
-                if ($brandName && isset($brandsMap[trim($brandName)])) {
-                    $brandId = $brandsMap[trim($brandName)];
+                if ($brandName) {
+                    $cleanBrand = trim($brandName);
+                    if (isset($brandsMap[$cleanBrand])) {
+                        $brandId = $brandsMap[$cleanBrand];
+                    } else {
+                        $newBrand = Brand::create([
+                            'name' => $cleanBrand,
+                            'slug' => Str::slug($cleanBrand)
+                        ]);
+                        $brandsMap[$cleanBrand] = $newBrand->id;
+                        $brandId = $newBrand->id;
+                    }
                 }
 
-                // Column P (index 15): SKU
-                $sku = $getCol($row, ['SKU / Product Code', 'SKU/Product Code', 'SKU', 'Product Code', 'Code'], 15);
-                // Column AB / AA (index 26): URL Slug
+                // 5. SKU / Product Code / Article Number / Design Code
+                $sku = $getCol($row, ['SKU / Product Code', 'SKU/Product Code', 'SKU', 'Art No', 'Article Number', 'Design Code', 'Product Code', 'Supplier SKU', 'Code'], 15);
+                
+                // URL Slug
                 $slug = $getCol($row, ['URL Slug', 'URLSlug', 'Slug'], 26);
                 if (!$slug || $slug === $tileName) {
                     $slug = Str::slug($tileName);
                 }
 
-                if (!$sku || is_numeric($sku) && (int)$sku < 100) {
+                if (!$sku || (is_numeric($sku) && (int)$sku < 100)) {
                     $sku = strtoupper(Str::slug($tileName)) . '-' . rand(1000, 9999);
                 }
 
                 // Numeric parsing helpers
                 $parseNum = function($val, $default = 0) {
                     if ($val === null) return $default;
-                    $clean = preg_replace('/[^0-9\.]/', '', $val);
+                    $clean = preg_replace('/[^0-9\.]/', '', (string)$val);
                     return is_numeric($clean) ? (float)$clean : $default;
                 };
 
-                // Column T (index 19): Price per Box & Column U (index 20): Price per Sq Ft
-                $pricePerBox = $parseNum($getCol($row, ['Price per Box', 'Price per box', 'Price/Box', 'Price', 'MRP'], 19), 0);
-                $pricePerSqft = $parseNum($getCol($row, ['Price per Sq.Ft', 'Price per Sq Ft', 'Price per sq.ft', 'Price per sqft'], 20), 0);
-                $mrp = $pricePerBox > 0 ? $pricePerBox : ($pricePerSqft > 0 ? $pricePerSqft * 16 : 500);
-                $price = $pricePerSqft > 0 ? $pricePerSqft : ($pricePerBox > 0 ? round($pricePerBox / 16, 2) : 50);
+                // 6. Pricing (MRP, Selling Price, Price per Box, Price per Sq.ft)
+                $mrpVal = $parseNum($getCol($row, ['MRP (Rs)', 'MRP', 'Price per Box', 'Price per box', 'Price/Box', 'Price', 'Dealer Cost'], 19), 0);
+                $sellingPriceVal = $parseNum($getCol($row, ['Selling Price (Rs)', 'Selling Price', 'Recommended Selling Price', 'Offer Price']), 0);
+                $pricePerSqft = $parseNum($getCol($row, ['Price per Sq.Ft', 'Price per Sq Ft', 'Price per sq.ft', 'Price per sqft', 'Rate per sq fett', 'Rate per sq ft'], 20), 0);
 
-                // Column W / X (index 22 / 23): Stock Status
-                $stockVal = $getCol($row, ['Stock Status', 'Priock Status', 'Stock status', 'Stock', 'Quantity', 'Status'], 23);
-                if (!$stockVal) {
-                    $stockVal = $getCol($row, [], 22);
-                }
+                $mrp = $mrpVal > 0 ? $mrpVal : ($sellingPriceVal > 0 ? $sellingPriceVal : ($pricePerSqft > 0 ? $pricePerSqft * 16 : 500));
+                $price = $sellingPriceVal > 0 ? $sellingPriceVal : ($pricePerSqft > 0 ? $pricePerSqft : ($mrpVal > 0 ? $mrpVal : 50));
+
+                // 7. Stock Status
+                $stockVal = $getCol($row, ['Stock Status', 'Product Status', 'Stock status', 'Stock', 'Quantity', 'Status'], 23);
                 $stock = 100;
                 if ($stockVal) {
                     if (is_numeric($stockVal)) {
@@ -449,33 +651,46 @@ class AdminController extends Controller implements HasMiddleware
                     }
                 }
 
-                // Specs: Column H (7), I (8), J (9), K (10), L (11), M (12), N (13), O (14), Q (16), R (17), S (18)
-                $widthMm = $parseNum($getCol($row, ['Width (mm)', 'Width(mm)', 'Width'], 7), 600);
+                // 8. Specs & Dimensions
+                $widthMm = $parseNum($getCol($row, ['Width (mm)', 'Width(mm)', 'Width', 'Length (mm)'], 7), 600);
                 $heightMm = $parseNum($getCol($row, ['Height (mm)', 'Height(mm)', 'Height'], 8), 1200);
                 $thickness = $getCol($row, ['Thickness (mm)', 'Thickness(mm)', 'Thickness'], 10) ?? '9 MM';
-                $size = $getCol($row, ['Size (mm)', 'Size', 'Size(mm)'], 9) ?? ($widthMm . 'x' . $heightMm . 'mm');
-                $sizeInch = $getCol($row, ['Size (Inch)', 'Size (inch)', 'Size(inch)'], 11) ?? '24x48';
-                $collection = $getCol($row, ['Collection'], 3) ?? 'Glossy';
-                $subCategory = $getCol($row, ['Sub Category', 'SubCategory', 'Sub-Category'], 5) ?? 'Floor Tiles';
-                $finish = $getCol($row, ['Finish'], 6) ?? 'Glossy';
+                $size = $getCol($row, ['Size (mm)', 'Size', 'Size(mm)', 'Variant/Size'], 9) ?? ($widthMm . 'x' . $heightMm . 'mm');
+                $sizeInch = $getCol($row, ['Size (Inch)', 'Size (inch)', 'Size(inch)', 'Size (Inches)'], 11) ?? '24x48';
+                $collection = $getCol($row, ['Collection', 'Collection / Series', 'Series'], 3) ?? 'Standard';
+
+                // Sub Category
+                $subCategory = $getCol($row, ['Sub Category', 'SubCategory', 'Sub-Category'], 5);
+                if (!$subCategory) {
+                    if (stripos($collection, 'Parking') !== false) {
+                        $subCategory = 'Parking Tiles';
+                    } elseif ($getCol($row, ['Product Type'])) {
+                        $subCategory = $getCol($row, ['Product Type']);
+                    } else {
+                        $subCategory = 'General';
+                    }
+                }
+
+                $finish = $getCol($row, ['Finish', 'Surface Aesthetic'], 6) ?? 'Standard';
                 $patternType = $getCol($row, ['Pattern Types', 'Pattern Type', 'PatternType', 'Pattern'], 13) ?? 'Standard';
                 $edgeType = $getCol($row, ['Edge Type', 'EdgeType', 'Edge'], 14) ?? 'Square';
-                $piecesPerBox = (int)$parseNum($getCol($row, ['Pieces per Box', 'Pieces per box', 'Pieces/Box'], 16), 2);
-                $coveragePerBox = $parseNum($getCol($row, ['Coverage per Box (sq.ft)', 'Coverage per box (sqft)', 'Coverage'], 17), 16);
-                $weightPerBox = $parseNum($getCol($row, ['Weight per Box (kg/ft)', 'Weight per Box (kg)', 'Weight'], 18), 30);
+                $piecesPerBox = (int)$parseNum($getCol($row, ['Pieces per Box', 'Pieces per box', 'Pieces/Box', 'Tiles per Box'], 16), 2);
+                $coveragePerBox = $parseNum($getCol($row, ['Coverage per Box (sq.ft)', 'Coverage per Box (Sq Ft)', 'Coverage per box (sqft)', 'Coverage'], 17), 16);
+                $weightPerBox = $parseNum($getCol($row, ['Weight per Box (kg/ft)', 'Weight per Box (kg)', 'Box Weight (Kg)', 'Weight'], 18), 30);
                 $areaTileSqft = $parseNum($getCol($row, ['Area/Tile (sq.ft)', 'Area/Tile (sqft)', 'Area/Tile'], 12), 8);
 
-                // Descriptions & Meta: Column Y (24), Z (25), AC (27)
+                // Descriptions & Meta
                 $shortDesc = $getCol($row, ['Short Description', 'ShortDescription', 'Description'], 24);
-                $metaDesc = $getCol($row, ['SEO Meta Description', 'SEO Meta Title', 'Meta Description'], 25);
-                $metaTitle = "Buy {$tileName} Tile Online";
+                $longDesc = $getCol($row, ['Long Description', 'Long Description / Bullets', 'Key Features']);
+                $metaDesc = $getCol($row, ['SEO Meta Description', 'Meta Description', 'SEO Meta Title'], 25);
+                $metaTitle = $getCol($row, ['SEO Meta Title', 'SEO Title', 'Meta Title']) ?? "Buy {$tileName} Online";
                 $catalogPage = $getCol($row, ['Catalog Page', 'CatalogPage', 'Page'], 27);
-                $tileImage = $getCol($row, ['Tile Image', 'TileImage', 'Image', 'Image Path'], 1);
+                $tileImage = $getCol($row, ['Tile Image', 'Tile Image (Light/Var.1)', 'TileImage', 'Image', 'Image Path'], 1);
 
                 $productData = [
                     'name' => $tileName,
                     'short_description' => $shortDesc,
-                    'description' => $shortDesc ?? "High quality {$tileName} {$collection} tile.",
+                    'description' => $longDesc ?? ($shortDesc ?? "Premium quality {$tileName}."),
                     'mrp' => $mrp,
                     'price' => $price,
                     'discount' => 0.00,
@@ -536,6 +751,21 @@ class AdminController extends Controller implements HasMiddleware
                     ProductImage::updateOrCreate(
                         ['product_id' => $product->id, 'is_primary' => true],
                         ['image_path' => $tileImage]
+                    );
+                }
+
+                // Automatically ensure SubCategory exists in sub_categories table
+                if (!empty($subCategory) && !empty($categoryId)) {
+                    SubCategory::firstOrCreate(
+                        [
+                            'category_id' => $categoryId,
+                            'slug' => Str::slug($subCategory)
+                        ],
+                        [
+                            'name' => $subCategory,
+                            'image' => $tileImage ?: 'images/categories/tiles.svg',
+                            'sort_order' => 1
+                        ]
                     );
                 }
             }
@@ -650,6 +880,20 @@ class AdminController extends Controller implements HasMiddleware
             'is_primary' => true
         ]);
 
+        if ($request->filled('sub_category') && $request->filled('category_id')) {
+            SubCategory::firstOrCreate(
+                [
+                    'category_id' => $request->input('category_id'),
+                    'slug' => Str::slug($request->input('sub_category'))
+                ],
+                [
+                    'name' => $request->input('sub_category'),
+                    'image' => $imagePath ?: 'images/categories/tiles.svg',
+                    'sort_order' => 1
+                ]
+            );
+        }
+
         return redirect()->route('admin.products')->with('success', 'Product created successfully.');
     }
 
@@ -744,6 +988,20 @@ class AdminController extends Controller implements HasMiddleware
             'is_new' => $request->boolean('is_new'),
         ]);
 
+        if ($request->filled('sub_category') && $request->filled('category_id')) {
+            SubCategory::firstOrCreate(
+                [
+                    'category_id' => $request->input('category_id'),
+                    'slug' => Str::slug($request->input('sub_category'))
+                ],
+                [
+                    'name' => $request->input('sub_category'),
+                    'image' => $imagePath ?? 'images/categories/tiles.svg',
+                    'sort_order' => 1
+                ]
+            );
+        }
+
         return redirect()->route('admin.products')->with('success', 'Product updated successfully.');
     }
 
@@ -795,51 +1053,7 @@ class AdminController extends Controller implements HasMiddleware
         return redirect()->back()->with('success', 'Category deleted.');
     }
 
-    /* -------------------------------------------------------------
-     * CRUD: BANNERS
-     * ------------------------------------------------------------- */
 
-    public function banners()
-    {
-        $banners = Banner::all();
-        return view('admin.banners.index', compact('banners'));
-    }
-
-    public function bannerStore(Request $request)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'subtitle' => 'nullable|string',
-            'link' => 'nullable|string',
-            'image' => 'required|image|max:2048'
-        ]);
-
-        $imagePath = 'images/banners/banner1.svg';
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/banners'), $fileName);
-            $imagePath = 'images/banners/' . $fileName;
-        }
-
-        Banner::create([
-            'title' => $request->input('title'),
-            'subtitle' => $request->input('subtitle'),
-            'link' => $request->input('link', '/products'),
-            'image' => $imagePath,
-            'type' => 'slider',
-            'is_active' => true
-        ]);
-
-        return redirect()->back()->with('success', 'Banner created.');
-    }
-
-    public function bannerDelete($id)
-    {
-        $banner = Banner::findOrFail($id);
-        $banner->delete();
-        return redirect()->back()->with('success', 'Banner deleted.');
-    }
 
     public function categoryEdit($id)
     {
@@ -940,6 +1154,56 @@ class AdminController extends Controller implements HasMiddleware
         $sub = SubCategory::findOrFail($id);
         $sub->delete();
         return redirect()->back()->with('success', 'Sub Category deleted.');
+    }
+
+    /* -------------------------------------------------------------
+     * CRUD: BANNERS
+     * ------------------------------------------------------------- */
+
+    public function banners()
+    {
+        $banners = Banner::orderBy('created_at', 'desc')->get();
+        return view('admin.banners.index', compact('banners'));
+    }
+
+    public function bannerStore(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'subtitle' => 'nullable|string|max:500',
+            'link' => 'nullable|string|max:255',
+            'image' => 'required|image|max:4096'
+        ]);
+
+        $imagePath = 'images/pristo/hero_bathroom.jpg';
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $destPath = public_path('images/banners');
+            if (!file_exists($destPath)) {
+                mkdir($destPath, 0755, true);
+            }
+            $file->move($destPath, $fileName);
+            $imagePath = 'images/banners/' . $fileName;
+        }
+
+        Banner::create([
+            'title' => $request->input('title'),
+            'subtitle' => $request->input('subtitle'),
+            'link' => $request->input('link', '/products'),
+            'image' => $imagePath,
+            'type' => 'slider',
+            'is_active' => true
+        ]);
+
+        return redirect()->back()->with('success', 'Banner created successfully.');
+    }
+
+    public function bannerDelete($id)
+    {
+        $banner = Banner::findOrFail($id);
+        $banner->delete();
+        return redirect()->back()->with('success', 'Banner deleted successfully.');
     }
 
     public function bannerEdit($id)

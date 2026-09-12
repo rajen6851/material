@@ -96,13 +96,9 @@
                                 </div>
                             @endif
 
-                            <div class="flex justify-between">
-                                <span>Shipping Fee</span>
-                                @if($shipping === 0)
-                                    <span class="font-bold text-teal-600 uppercase text-xs">Free Delivery</span>
-                                @else
-                                    <span class="font-semibold text-slate-800">₹{{ number_format($shipping, 2) }}</span>
-                                @endif
+                            <div class="flex justify-between items-center">
+                                <span>Shipping &amp; Delivery</span>
+                                <span class="font-bold text-[#b58d56] uppercase text-xs">Charges Applicable</span>
                             </div>
 
                             <div class="flex justify-between text-xs text-slate-400 pt-2 border-t">
@@ -120,7 +116,7 @@
                             <span>Proceed to Checkout</span>
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </a>
-                        <p class="text-center text-[10px] text-slate-400">Free delivery on orders above ₹5,000.</p>
+                        <p class="text-center text-[10px] text-slate-400">Standard freight &amp; delivery charges applicable based on order volume &amp; distance.</p>
                     </div>
                 </div>
 

@@ -81,15 +81,18 @@ class DashboardController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'mobile' => 'required|string|max:15',
+            'email' => 'nullable|email|max:255',
+            'role' => 'nullable|string|in:homeowner,professional',
+            'company_name' => 'nullable|string|max:255',
             'visit_date' => 'required|date|after_or_equal:today',
             'visit_time' => 'required|string',
-            'purpose' => 'nullable|string|in:inspect,browse,purchase,consultation,trade',
+            'purpose' => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
-        $role = auth()->check() ? auth()->user()->role : 'homeowner';
+        $role = $request->input('role') ?: (auth()->check() ? auth()->user()->role : 'homeowner');
         $purpose = $request->input('purpose');
 
-        // Tailor the default purpose to the visitor role.
         if (! $purpose) {
             $purpose = $role === 'professional' ? 'trade' : 'purchase';
         }
@@ -98,14 +101,17 @@ class DashboardController extends Controller
             'user_id' => auth()->check() ? auth()->id() : null,
             'name' => $request->input('name'),
             'mobile' => $request->input('mobile'),
+            'email' => $request->input('email') ?: (auth()->check() ? auth()->user()->email : null),
             'role' => $role,
+            'company_name' => $request->input('company_name') ?: (auth()->check() ? auth()->user()->company_name : null),
             'purpose' => $purpose,
+            'notes' => $request->input('notes'),
             'visit_date' => $request->input('visit_date'),
             'visit_time' => $request->input('visit_time'),
             'status' => 'pending'
         ]);
 
-        return redirect()->route(auth()->check() ? 'dashboard' : 'products.index')
-            ->with('success', 'Showroom visit booked! We will call you to confirm.');
+        return redirect()->back()
+            ->with('success', 'Showroom visit booked successfully! Our concierge team will contact you to confirm.');
     }
 }

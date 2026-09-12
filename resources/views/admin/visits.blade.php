@@ -34,9 +34,28 @@
                                     <td class="py-4 px-6">
                                         <span class="font-bold text-slate-800 text-sm block">{{ $visit->name }}</span>
                                         <span class="text-xs text-slate-500 block">Mobile: {{ $visit->mobile }}</span>
-                                        <span class="text-[10px] {{ $visit->role === 'professional' ? 'bg-indigo-50 text-indigo-700' : 'bg-teal-50 text-teal-700' }} px-1.5 py-0.5 rounded-full mt-1 inline-block capitalize">{{ $visit->role }}</span>
-                                        @if($visit->purpose)
-                                            <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded mt-1 inline-block">Purpose: {{ ucwords(str_replace('_', ' ', $visit->purpose)) }}</span>
+                                        @if($visit->email)
+                                            <span class="text-xs text-slate-400 block">Email: {{ $visit->email }}</span>
+                                        @endif
+                                        <div class="flex flex-wrap gap-1 mt-1.5">
+                                            <span class="text-[10px] font-bold {{ $visit->role === 'professional' ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-blue-50 text-blue-800 border border-blue-200' }} px-2 py-0.5 rounded-full capitalize">
+                                                {{ $visit->role === 'professional' ? '🏢 B2B Trade' : '🏠 Homeowner (B2C)' }}
+                                            </span>
+                                            @if($visit->company_name)
+                                                <span class="text-[10px] bg-purple-50 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-full font-bold">
+                                                    {{ $visit->company_name }}
+                                                </span>
+                                            @endif
+                                            @if($visit->purpose)
+                                                <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                                                    Purpose: {{ ucwords(str_replace('_', ' ', $visit->purpose)) }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        @if($visit->notes)
+                                            <div class="mt-2 text-xs bg-slate-50 p-2 rounded-lg border border-slate-200 text-slate-700 italic">
+                                                "{{ $visit->notes }}"
+                                            </div>
                                         @endif
                                         @if($visit->user)
                                             <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono mt-1 inline-block">Registered User: {{ $visit->user->email }}</span>

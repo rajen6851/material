@@ -41,10 +41,22 @@ class ProductController extends Controller
         // Subcategory filter
         $selectedSubCategoryName = null;
         if ($request->filled('subcategory')) {
-            $subcat = SubCategory::where('slug', $request->input('subcategory'))->first();
+            $subInput = $request->input('subcategory');
+            $subcat = SubCategory::where('slug', $subInput)->first();
             if ($subcat) {
-                $query->where('sub_category', $subcat->name);
+                $query->where(function($q) use ($subcat) {
+                    $q->where('sub_category', $subcat->name)
+                      ->orWhere('sub_category', 'like', '%' . $subcat->name . '%');
+                });
                 $selectedSubCategoryName = $subcat->name;
+            } else {
+                $cleanSub = str_replace('-', ' ', $subInput);
+                $query->where(function($q) use ($subInput, $cleanSub) {
+                    $q->where('sub_category', $subInput)
+                      ->orWhere('sub_category', $cleanSub)
+                      ->orWhere('sub_category', 'like', '%' . $cleanSub . '%');
+                });
+                $selectedSubCategoryName = ucwords($cleanSub);
             }
         }
 
