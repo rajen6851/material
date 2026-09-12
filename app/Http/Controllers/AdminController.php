@@ -814,19 +814,23 @@ class AdminController extends Controller implements HasMiddleware
                     );
                 }
 
-                // Automatically ensure SubCategory exists in sub_categories table
+                // Automatically ensure SubCategory exists — check by slug first to avoid unique key violation
                 if (!empty($subCategory) && !empty($categoryId)) {
-                    SubCategory::firstOrCreate(
-                        [
-                            'category_id' => $categoryId,
-                            'slug' => Str::slug($subCategory)
-                        ],
-                        [
-                            'name' => $subCategory,
-                            'image' => $tileImage ?: 'images/categories/tiles.svg',
-                            'sort_order' => 1
-                        ]
-                    );
+                    $subCatSlug = Str::slug($subCategory);
+                    try {
+                        SubCategory::firstOrCreate(
+                            ['slug' => $subCatSlug],
+                            [
+                                'category_id' => $categoryId,
+                                'name'        => $subCategory,
+                                'image'       => $tileImage ?: 'images/categories/tiles.svg',
+                                'sort_order'  => 1
+                            ]
+                        );
+                    } catch (\Illuminate\Database\QueryException $qe) {
+                        // Silently skip if duplicate — sub_category already exists under another category
+                        // The product's sub_category (text) field is already saved; only the lookup table entry failed
+                    }
                 }
             }
 
