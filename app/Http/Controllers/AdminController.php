@@ -577,14 +577,23 @@ class AdminController extends Controller implements HasMiddleware
                     } elseif (isset($categoriesSlugMap[$catSlug])) {
                         $categoryId = $categoriesSlugMap[$catSlug];
                     } else {
-                        $newCat = Category::create([
-                            'name' => ucwords($catClean),
-                            'slug' => $catSlug,
-                            'image' => 'images/categories/tiles.svg'
-                        ]);
-                        $categoriesMap[$catClean] = $newCat->id;
-                        $categoriesSlugMap[$catSlug] = $newCat->id;
-                        $categoryId = $newCat->id;
+                        try {
+                            $newCat = Category::firstOrCreate(
+                                ['slug' => $catSlug],
+                                ['name' => ucwords($catClean), 'image' => 'images/categories/tiles.svg']
+                            );
+                            $categoriesMap[$catClean]    = $newCat->id;
+                            $categoriesSlugMap[$catSlug] = $newCat->id;
+                            $categoryId = $newCat->id;
+                        } catch (\Illuminate\Database\QueryException $qe) {
+                            // Slug already exists — find it
+                            $existing = Category::where('slug', $catSlug)->first();
+                            if ($existing) {
+                                $categoriesMap[$catClean]    = $existing->id;
+                                $categoriesSlugMap[$catSlug] = $existing->id;
+                                $categoryId = $existing->id;
+                            }
+                        }
                     }
                 }
 
