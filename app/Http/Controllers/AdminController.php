@@ -299,7 +299,7 @@ class AdminController extends Controller implements HasMiddleware
             return redirect()->back()->with('error', 'The uploaded file is empty.');
         }
 
-        // ── 1. XLSX → CSV conversion (no external package needed) ──────────
+        // ── 1. XLSX → multi-sheet CSV conversion ────────────────────────────
         if (substr($fileContent, 0, 4) === "PK\x03\x04") {
             try {
                 $zip = new \ZipArchive();
@@ -307,80 +307,110 @@ class AdminController extends Controller implements HasMiddleware
                     return redirect()->back()->with('error', 'Could not read the Excel file. Please make sure it is a valid .xlsx file.');
                 }
 
-                // Read shared strings (string table)
+                // Helper: parse one sheet XML → array of row arrays
+                $parseSheetXml = function(string $sheetXml, array $sharedStrings): array {
+                    $sheet = @simplexml_load_string($sheetXml);
+                    if (!$sheet) return [];
+                    $rows = [];
+                    foreach ($sheet->sheetData->row as $row) {
+                        $rowData = []; $lastCol = 0;
+                        foreach ($row->c as $cell) {
+                            preg_match('/^([A-Z]+)/', (string)$cell['r'], $cm);
+                            $letters = $cm[1] ?? 'A';
+                            $colIdx = 0;
+                            foreach (str_split($letters) as $ch) {
+                                $colIdx = $colIdx * 26 + (ord($ch) - ord('A') + 1);
+                            }
+                            $colIdx--;
+                            while ($lastCol < $colIdx) { $rowData[] = ''; $lastCol++; }
+                            $type  = (string)$cell['t'];
+                            $value = (string)$cell->v;
+                            if ($type === 's')         { $value = $sharedStrings[(int)$value] ?? ''; }
+                            elseif ($type === 'inlineStr') { $value = (string)$cell->is->t; }
+                            $rowData[] = $value; $lastCol++;
+                        }
+                        $rows[] = $rowData;
+                    }
+                    return $rows;
+                };
+
+                // Read shared strings (global, applies to all sheets)
                 $sharedStrings = [];
                 $ssXml = $zip->getFromName('xl/sharedStrings.xml');
                 if ($ssXml) {
-                    $ss = simplexml_load_string($ssXml);
-                    foreach ($ss->si as $si) {
-                        // Each <si> may have <t> or <r><t>
-                        $text = '';
-                        if (isset($si->t)) {
-                            $text = (string) $si->t;
-                        } else {
-                            foreach ($si->r as $r) {
-                                $text .= (string) $r->t;
+                    $ss = @simplexml_load_string($ssXml);
+                    if ($ss) {
+                        foreach ($ss->si as $si) {
+                            $text = isset($si->t) ? (string)$si->t : '';
+                            if (!$text) { foreach ($si->r as $r) { $text .= (string)$r->t; } }
+                            $sharedStrings[] = $text;
+                        }
+                    }
+                }
+
+                // Discover all sheets via workbook.xml + relationships
+                $sheetFiles = [];
+                $wbXml = $zip->getFromName('xl/workbook.xml');
+                $relsXml = $zip->getFromName('xl/_rels/workbook.xml.rels');
+                if ($wbXml && $relsXml) {
+                    $wb   = @simplexml_load_string($wbXml);
+                    $rels = @simplexml_load_string($relsXml);
+                    if ($wb && $rels) {
+                        // Build rId → target path map
+                        $rIdMap = [];
+                        foreach ($rels->Relationship as $rel) {
+                            $rIdMap[(string)$rel['Id']] = 'xl/' . ltrim((string)$rel['Target'], '/');
+                        }
+                        // Get sheets in order
+                        $ns = $wb->getNamespaces(true);
+                        $sheets = $wb->sheets->sheet ?? [];
+                        foreach ($sheets as $sheet) {
+                            $attrs = $sheet->attributes('r', true) ?: $sheet->attributes();
+                            $rId   = (string)($attrs['id'] ?? '');
+                            if (!$rId) {
+                                // try without namespace
+                                foreach ($sheet->attributes() as $k => $v) {
+                                    if (str_ends_with($k, 'id') || $k === 'id') { $rId = (string)$v; break; }
+                                }
+                            }
+                            if ($rId && isset($rIdMap[$rId])) {
+                                $sheetFiles[] = $rIdMap[$rId];
                             }
                         }
-                        $sharedStrings[] = $text;
                     }
                 }
 
-                // Read first sheet (sheet1.xml)
-                $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
-                $zip->close();
-
-                if (!$sheetXml) {
-                    return redirect()->back()->with('error', 'Could not find sheet data in the Excel file.');
-                }
-
-                $sheet = simplexml_load_string($sheetXml);
-                $rows = [];
-
-                foreach ($sheet->sheetData->row as $row) {
-                    $rowData = [];
-                    $lastCol = 0;
-
-                    foreach ($row->c as $cell) {
-                        // Determine column index from cell ref (e.g. A1, B2, AA3)
-                        preg_match('/^([A-Z]+)/', (string)$cell['r'], $colMatch);
-                        $colLetters = $colMatch[1] ?? 'A';
-                        $colIndex = 0;
-                        foreach (str_split($colLetters) as $ch) {
-                            $colIndex = $colIndex * 26 + (ord($ch) - ord('A') + 1);
-                        }
-                        $colIndex--; // 0-based
-
-                        // Fill gaps with empty strings
-                        while ($lastCol < $colIndex) {
-                            $rowData[] = '';
-                            $lastCol++;
-                        }
-
-                        // Get cell value
-                        $type = (string)$cell['t'];
-                        $value = (string)$cell->v;
-
-                        if ($type === 's') {
-                            // Shared string
-                            $value = $sharedStrings[(int)$value] ?? '';
-                        } elseif ($type === 'inlineStr') {
-                            $value = (string)$cell->is->t;
-                        }
-                        // Numeric / date / boolean values come as-is
-
-                        $rowData[] = $value;
-                        $lastCol++;
+                // Fallback: if relationship parsing failed, enumerate sheet XMLs directly
+                if (empty($sheetFiles)) {
+                    for ($i = 1; $i <= 20; $i++) {
+                        $path = "xl/worksheets/sheet{$i}.xml";
+                        if ($zip->getFromName($path) !== false) { $sheetFiles[] = $path; }
+                        else break;
                     }
-
-                    $rows[] = $rowData;
                 }
 
-                // Convert rows array → CSV string
+                if (empty($sheetFiles)) {
+                    $zip->close();
+                    return redirect()->back()->with('error', 'Could not find any sheet data in the Excel file.');
+                }
+
+                // Build combined CSV: each sheet separated by a sentinel row
                 $csvBuffer = fopen('php://memory', 'r+');
-                foreach ($rows as $rowData) {
-                    fputcsv($csvBuffer, $rowData);
+                $totalSheets = count($sheetFiles);
+                foreach ($sheetFiles as $sheetIdx => $sheetPath) {
+                    $sheetXml = $zip->getFromName($sheetPath);
+                    if (!$sheetXml) continue;
+                    $rows = $parseSheetXml($sheetXml, $sharedStrings);
+                    if (empty($rows)) continue;
+                    // Write sentinel before each sheet (except first)
+                    if ($sheetIdx > 0) {
+                        fputcsv($csvBuffer, ['---SHEET_BREAK---']);
+                    }
+                    foreach ($rows as $rowData) {
+                        fputcsv($csvBuffer, $rowData);
+                    }
                 }
+                $zip->close();
                 rewind($csvBuffer);
                 $fileContent = stream_get_contents($csvBuffer);
                 fclose($csvBuffer);
@@ -389,6 +419,7 @@ class AdminController extends Controller implements HasMiddleware
                 return redirect()->back()->with('error', 'Failed to parse Excel file: ' . $e->getMessage());
             }
         }
+
 
         // ── 2. Detect & convert multi-byte encodings to UTF-8 ──────────────
 
@@ -477,8 +508,12 @@ class AdminController extends Controller implements HasMiddleware
             return strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $h)));
         }, $header) : [];
 
+        // Helper: normalize a single header string
+        $normalizeHeader = fn($h) => strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$h)));
+
         // Helper to find cell value by candidate header names or fallback index
-        $getCol = function($row, array $candidates, $fallbackIndex = null) use ($normalizedHeaders, $cleanStr) {
+        // Uses &$normalizedHeaders so sheet-break resets are reflected immediately
+        $getCol = function($row, array $candidates, $fallbackIndex = null) use (&$normalizedHeaders, $cleanStr) {
             foreach ($candidates as $cand) {
                 $cleanCand = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $cand)));
                 $idx = array_search($cleanCand, $normalizedHeaders);
@@ -519,6 +554,40 @@ class AdminController extends Controller implements HasMiddleware
                 // Skip completely empty rows
                 if (empty(array_filter($row))) {
                     continue;
+                }
+
+                // ── Sheet break sentinel: new sheet starts, re-detect its header ──
+                if (isset($row[0]) && trim($row[0]) === '---SHEET_BREAK---') {
+                    // Scan ahead to find the header row for this new sheet
+                    $newHeader = null;
+                    while (($candidateRow = fgetcsv($handle, 0, $delimiter)) !== false) {
+                        $lineNumber++;
+                        if (empty(array_filter($candidateRow))) continue;
+                        $rowStr = strtolower(implode(' ', $candidateRow));
+                        // Stop if we hit another sentinel
+                        if (trim($candidateRow[0]) === '---SHEET_BREAK---') {
+                            // Nothing useful found between sentinels; recurse into next sheet
+                            fputcsv(fopen('php://memory', 'r+'), ['---SHEET_BREAK---']); // no-op
+                            break;
+                        }
+                        if (
+                            str_contains($rowStr, 'tile name') || str_contains($rowStr, 'product name') ||
+                            str_contains($rowStr, 'sku') || str_contains($rowStr, 'article number') ||
+                            str_contains($rowStr, 'design code') || str_contains($rowStr, 's.no') ||
+                            (str_contains($rowStr, 'name') && str_contains($rowStr, 'category')) ||
+                            (str_contains($rowStr, 'brand') && str_contains($rowStr, 'category'))
+                        ) {
+                            $newHeader = $candidateRow;
+                            break;
+                        }
+                        // If we've read a few non-empty rows without finding a header, treat first as header
+                        $newHeader = $candidateRow;
+                        break;
+                    }
+                    if ($newHeader) {
+                        $normalizedHeaders = array_map($normalizeHeader, $newHeader);
+                    }
+                    continue; // skip this sentinel row itself
                 }
 
                 // 1. Product Name — handles all 8 formats
