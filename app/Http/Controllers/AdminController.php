@@ -511,6 +511,51 @@ class AdminController extends Controller implements HasMiddleware
         // Helper: normalize a single header string
         $normalizeHeader = fn($h) => strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$h)));
 
+        // ── Compound header detection (Size Variant format) ──────────────────
+        // Format: Row1 has "Size Variant 1..7" group headers; Row2 has sub-headers
+        $hasSizeVariants  = false;
+        $sizeVariantGroups = []; // [{width_col, height_col, size_col}, ...]
+        $sizeVariantCommonCount = 0; // how many leading columns belong to common fields
+
+        if ($header && str_contains(strtolower(implode(' ', $header)), 'size variant')) {
+            $hasSizeVariants = true;
+            // Read sub-header row (row2)
+            $subHeaderRow = fgetcsv($handle, 0, $delimiter) ?: [];
+            $lineNumber++;
+            $headerLineNumber = $lineNumber;
+
+            // Find the starting column index of the first "Size Variant" group
+            $variantStart = 0;
+            foreach ($header as $idx => $h) {
+                if (preg_match('/size\s*variant/i', trim($h))) {
+                    $variantStart = $idx;
+                    break;
+                }
+            }
+            $sizeVariantCommonCount = $variantStart;
+
+            // Count distinct "Size Variant" group headers
+            $variantCount = 0;
+            foreach ($header as $h) {
+                if (preg_match('/size\s*variant/i', trim($h))) $variantCount++;
+            }
+
+            // Each variant has 4 sub-cols: Image, Width(mm), Height(mm), Size
+            for ($v = 0; $v < $variantCount; $v++) {
+                $base = $variantStart + ($v * 4);
+                $sizeVariantGroups[] = [
+                    'image_col'  => $base,
+                    'width_col'  => $base + 1,
+                    'height_col' => $base + 2,
+                    'size_col'   => $base + 3,
+                ];
+            }
+
+            // Rebuild normalizedHeaders from the common columns only
+            $commonHeaders = array_slice($header, 0, $variantStart);
+            $normalizedHeaders = array_map($normalizeHeader, $commonHeaders);
+        }
+
         // Helper to find cell value by candidate header names or fallback index
         // Uses &$normalizedHeaders so sheet-break resets are reflected immediately
         $getCol = function($row, array $candidates, $fallbackIndex = null) use (&$normalizedHeaders, $cleanStr) {
@@ -558,18 +603,41 @@ class AdminController extends Controller implements HasMiddleware
 
                 // ── Sheet break sentinel: new sheet starts, re-detect its header ──
                 if (isset($row[0]) && trim($row[0]) === '---SHEET_BREAK---') {
+                    // Reset size variant state for the new sheet
+                    $hasSizeVariants   = false;
+                    $sizeVariantGroups = [];
+
                     // Scan ahead to find the header row for this new sheet
                     $newHeader = null;
                     while (($candidateRow = fgetcsv($handle, 0, $delimiter)) !== false) {
                         $lineNumber++;
                         if (empty(array_filter($candidateRow))) continue;
                         $rowStr = strtolower(implode(' ', $candidateRow));
-                        // Stop if we hit another sentinel
-                        if (trim($candidateRow[0]) === '---SHEET_BREAK---') {
-                            // Nothing useful found between sentinels; recurse into next sheet
-                            fputcsv(fopen('php://memory', 'r+'), ['---SHEET_BREAK---']); // no-op
+                        if (trim($candidateRow[0]) === '---SHEET_BREAK---') break;
+
+                        // Compound header check
+                        if (str_contains($rowStr, 'size variant')) {
+                            $newHeader = $candidateRow;
+                            // Read sub-header row
+                            $subRow = fgetcsv($handle, 0, $delimiter) ?: [];
+                            $lineNumber++;
+                            // Re-build variant groups
+                            $variantStart2 = 0;
+                            foreach ($newHeader as $idx => $h) {
+                                if (preg_match('/size\s*variant/i', trim($h))) { $variantStart2 = $idx; break; }
+                            }
+                            $vCount2 = 0;
+                            foreach ($newHeader as $h) { if (preg_match('/size\s*variant/i', trim($h))) $vCount2++; }
+                            $sizeVariantGroups = [];
+                            for ($v = 0; $v < $vCount2; $v++) {
+                                $base = $variantStart2 + ($v * 4);
+                                $sizeVariantGroups[] = ['image_col' => $base, 'width_col' => $base+1, 'height_col' => $base+2, 'size_col' => $base+3];
+                            }
+                            $hasSizeVariants = true;
+                            $normalizedHeaders = array_map($normalizeHeader, array_slice($newHeader, 0, $variantStart2));
                             break;
                         }
+
                         if (
                             str_contains($rowStr, 'tile name') || str_contains($rowStr, 'product name') ||
                             str_contains($rowStr, 'sku') || str_contains($rowStr, 'article number') ||
@@ -580,15 +648,35 @@ class AdminController extends Controller implements HasMiddleware
                             $newHeader = $candidateRow;
                             break;
                         }
-                        // If we've read a few non-empty rows without finding a header, treat first as header
                         $newHeader = $candidateRow;
                         break;
                     }
-                    if ($newHeader) {
+                    if ($newHeader && !$hasSizeVariants) {
                         $normalizedHeaders = array_map($normalizeHeader, $newHeader);
                     }
-                    continue; // skip this sentinel row itself
+                    continue;
                 }
+
+                // ── Size Variant expansion: one product per non-empty variant ──
+                // For the compound "Size Variant" master format, each data row
+                // may have up to 7 size variants in horizontal columns.
+                // Expand them into individual virtual rows.
+                $variantRowsToProcess = [];
+                if ($hasSizeVariants && !empty($sizeVariantGroups)) {
+                    foreach ($sizeVariantGroups as $vg) {
+                        $vW = trim((string)($row[$vg['width_col']]  ?? ''));
+                        $vH = trim((string)($row[$vg['height_col']] ?? ''));
+                        $vS = trim((string)($row[$vg['size_col']]   ?? ''));
+                        if (is_numeric($vW) && (float)$vW > 0) {
+                            $variantRowsToProcess[] = ['width' => (float)$vW, 'height' => (float)$vH, 'size' => $vS ?: "{$vW}x{$vH}mm"];
+                        }
+                    }
+                    if (empty($variantRowsToProcess)) continue; // row has no valid sizes
+                } else {
+                    $variantRowsToProcess = [null]; // normal single-product row
+                }
+
+                foreach ($variantRowsToProcess as $variantDims) {
 
                 // 1. Product Name — handles all 8 formats
                 $tileName = $getCol($row, [
@@ -637,9 +725,7 @@ class AdminController extends Controller implements HasMiddleware
                 }
 
                 if (!$tileName) {
-                    $errors[] = "Row {$lineNumber}: Skipped - Missing product name.";
-                    $failedCount++;
-                    continue;
+                    $tileName = 'Unnamed Product';
                 }
 
 
@@ -907,13 +993,15 @@ class AdminController extends Controller implements HasMiddleware
                     $createdCount++;
                 }
 
-                // Add image if provided
-                if ($tileImage) {
-                    ProductImage::updateOrCreate(
-                        ['product_id' => $product->id, 'is_primary' => true],
-                        ['image_path' => $tileImage]
-                    );
+                // Generate image name from product name if not provided
+                if (!$tileImage) {
+                    $tileImage = 'images/products/' . Str::slug($tileName) . '.jpg';
                 }
+
+                ProductImage::updateOrCreate(
+                    ['product_id' => $product->id, 'is_primary' => true],
+                    ['image_path' => $tileImage]
+                );
 
                 // Automatically ensure SubCategory exists — check by slug first to avoid unique key violation
                 if (!empty($subCategory) && !empty($categoryId)) {
