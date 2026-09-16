@@ -1021,8 +1021,9 @@ class AdminController extends Controller implements HasMiddleware
                         // The product's sub_category (text) field is already saved; only the lookup table entry failed
                     }
                 }
+                }
             }
-
+            
             \Illuminate\Support\Facades\DB::commit();
             fclose($handle);
 
