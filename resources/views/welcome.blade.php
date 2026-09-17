@@ -513,100 +513,100 @@
     </div>
 
     {{-- ============================================================
-         HOMEPAGE ANIMATIONS — Scroll Reveal + Stagger + Floating
+         HOMEPAGE ANIMATIONS — Advanced Level
          ============================================================ --}}
     <style>
-        /* ── Reveal base ── */
+        /* ── Base Reveals ── */
         .reveal {
             opacity: 0;
-            transform: translateY(36px);
-            transition: opacity 0.72s cubic-bezier(.25,.8,.25,1),
-                        transform 0.72s cubic-bezier(.25,.8,.25,1);
+            transform: translateY(40px);
+            transition: opacity 0.9s cubic-bezier(.19, 1, .22, 1), transform 0.9s cubic-bezier(.19, 1, .22, 1);
         }
         .reveal.visible { opacity: 1; transform: translateY(0); }
 
-        /* ── Reveal from left ── */
         .reveal-left {
             opacity: 0;
-            transform: translateX(-40px);
-            transition: opacity 0.7s ease, transform 0.7s ease;
+            transform: translateX(-50px);
+            transition: opacity 0.9s cubic-bezier(.19, 1, .22, 1), transform 0.9s cubic-bezier(.19, 1, .22, 1);
         }
         .reveal-left.visible { opacity: 1; transform: translateX(0); }
 
-        /* ── Reveal from right ── */
-        .reveal-right {
-            opacity: 0;
-            transform: translateX(40px);
-            transition: opacity 0.7s ease, transform 0.7s ease;
+        /* ── Advanced Image Curtain Reveal ── */
+        .image-curtain {
+            position: relative;
+            overflow: hidden;
+            display: block;
         }
-        .reveal-right.visible { opacity: 1; transform: translateX(0); }
+        .image-curtain::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-color: #171615;
+            transition: transform 1.2s cubic-bezier(0.77, 0, 0.175, 1);
+            transform-origin: right;
+            z-index: 10;
+        }
+        .image-curtain.visible::after { transform: scaleX(0); }
+        .image-curtain img {
+            transform: scale(1.15);
+            transition: transform 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        .image-curtain.visible img { transform: scale(1); }
+
+        /* ── Text Line Reveal (Text Split) ── */
+        .text-reveal-wrapper {
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: top;
+        }
+        .text-reveal-inner {
+            display: inline-block;
+            transform: translateY(110%);
+            transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        .text-reveal-wrapper.visible .text-reveal-inner {
+            transform: translateY(0);
+        }
 
         /* ── Stagger delays ── */
-        .stagger-1 { transition-delay: 0.05s !important; }
-        .stagger-2 { transition-delay: 0.13s !important; }
-        .stagger-3 { transition-delay: 0.21s !important; }
-        .stagger-4 { transition-delay: 0.29s !important; }
-        .stagger-5 { transition-delay: 0.37s !important; }
-        .stagger-6 { transition-delay: 0.45s !important; }
+        .stagger-1 { transition-delay: 0.1s !important; }
+        .stagger-2 { transition-delay: 0.2s !important; }
+        .stagger-3 { transition-delay: 0.3s !important; }
+        .stagger-4 { transition-delay: 0.4s !important; }
+        .stagger-5 { transition-delay: 0.5s !important; }
+        .stagger-6 { transition-delay: 0.6s !important; }
 
         /* ── Section heading underline sweep ── */
-        .heading-underline {
-            position: relative;
-            display: inline-block;
-        }
+        .heading-underline { position: relative; display: inline-block; }
         .heading-underline::after {
             content: '';
             position: absolute;
-            bottom: -4px;
-            left: 0;
-            width: 0;
-            height: 2.5px;
-            background: linear-gradient(90deg, #b58d56, #c09b5a);
-            border-radius: 2px;
-            transition: width 0.8s cubic-bezier(.25,.8,.25,1) 0.3s;
+            bottom: -4px; left: 0; width: 0; height: 2px;
+            background: linear-gradient(90deg, #b58d56, transparent);
+            transition: width 1s cubic-bezier(0.77, 0, 0.175, 1) 0.3s;
         }
         .heading-underline.visible::after { width: 100%; }
 
-        /* ── Floating badge pulse ── */
-        @keyframes floatUp {
-            0%, 100% { transform: translateY(0px); }
-            50%       { transform: translateY(-8px); }
-        }
-        .float-badge { animation: floatUp 4s ease-in-out infinite; }
-
-        /* ── Shimmer on hero image ── */
-        @keyframes shimmer {
-            0%   { background-position: -200% center; }
-            100% { background-position: 200% center; }
-        }
-
-        /* ── Scale zoom on visible ── */
+        /* ── Smooth zoom out ── */
         .reveal-zoom {
-            opacity: 0;
-            transform: scale(0.93);
-            transition: opacity 0.65s ease, transform 0.65s ease;
+            opacity: 0; transform: scale(0.92);
+            transition: opacity 0.8s cubic-bezier(0.19,1,0.22,1), transform 0.8s cubic-bezier(0.19,1,0.22,1);
         }
         .reveal-zoom.visible { opacity: 1; transform: scale(1); }
 
-        /* ── Smooth number counter ── */
-        .count-num { display: inline-block; }
-
-        /* ── Marquee scroll for brands ── */
-        @keyframes marquee {
-            from { transform: translateX(0); }
-            to   { transform: translateX(-50%); }
-        }
-        .marquee-track {
-            display: flex;
-            animation: marquee 20s linear infinite;
-        }
-        .marquee-track:hover { animation-play-state: paused; }
+        /* ── Magnetic Button Container ── */
+        .magnetic-btn { display: inline-block; position: relative; }
+        .magnetic-btn > * { pointer-events: none; }
+        
+        /* ── Custom Cursor Styles ── */
+        body { cursor: none; } /* Hide default cursor */
+        a, button, input, select, textarea { cursor: none; }
     </style>
 
     <script>
     (function() {
-        // ── 1. Intersection Observer for scroll reveals ──────────────
-        var revealClasses = ['.reveal', '.reveal-left', '.reveal-right', '.reveal-zoom', '.heading-underline'];
+        // ── 1. Intersection Observer for advanced reveals ──────────────
+        var revealClasses = ['.reveal', '.reveal-left', '.reveal-zoom', '.heading-underline', '.image-curtain', '.text-reveal-wrapper'];
         var allReveal = document.querySelectorAll(revealClasses.join(','));
 
         if ('IntersectionObserver' in window) {
@@ -614,14 +614,14 @@
                 entries.forEach(function(entry) {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('visible');
+                        // Optional: remove unobserve if you want it to trigger again on scroll up
                         observer.unobserve(entry.target);
                     }
                 });
-            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+            }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
 
             allReveal.forEach(function(el) { observer.observe(el); });
         } else {
-            // Fallback: show all immediately
             allReveal.forEach(function(el) { el.classList.add('visible'); });
         }
 
@@ -635,10 +635,53 @@
             });
         });
 
-        // ── 3. Floating elements ─────────────────────────────────────
-        document.querySelectorAll('.float-badge').forEach(function(el, i) {
-            el.style.animationDelay = (i * 0.6) + 's';
-        });
+        // ── 3. Custom Premium Cursor & Hover Effects ─────────────────────────────────────
+        const cursor = document.getElementById('pristo-cursor');
+        const dot = document.getElementById('pristo-cursor-dot');
+        
+        if (cursor && dot && window.matchMedia("(pointer: fine)").matches) {
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top = e.clientY + 'px';
+                dot.style.left = e.clientX + 'px';
+                dot.style.top = e.clientY + 'px';
+            });
+            
+            // Expand cursor on interactive elements
+            document.querySelectorAll('a, button, .magnetic-btn').forEach(el => {
+                el.addEventListener('mouseenter', () => {
+                    cursor.style.transform = 'translate(-50%, -50%) scale(2.2)';
+                    cursor.style.backgroundColor = 'rgba(192, 155, 90, 0.15)';
+                    cursor.style.borderColor = 'transparent';
+                    dot.style.opacity = '0';
+                });
+                el.addEventListener('mouseleave', () => {
+                    cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+                    cursor.style.backgroundColor = 'transparent';
+                    cursor.style.borderColor = 'rgba(192, 155, 90, 0.6)';
+                    dot.style.opacity = '1';
+                    
+                    // Reset magnetic button position on leave
+                    if(el.classList.contains('magnetic-btn')) {
+                        el.style.transform = 'translate(0px, 0px)';
+                        el.children[0].style.transform = 'translate(0px, 0px)';
+                    }
+                });
+                
+                // Magnetic effect calculation
+                if(el.classList.contains('magnetic-btn')) {
+                    el.addEventListener('mousemove', (e) => {
+                        const rect = el.getBoundingClientRect();
+                        const x = e.clientX - rect.left - rect.width / 2;
+                        const y = e.clientY - rect.top - rect.height / 2;
+                        el.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px)`;
+                        if(el.children[0]) {
+                            el.children[0].style.transform = `translate(${x * 0.1}px, ${y * 0.1}px)`;
+                        }
+                    });
+                }
+            });
+        }
 
         // ── 4. Tilt card effect on product cards ────────────────────
         document.querySelectorAll('.tilt-card').forEach(function(card) {
@@ -646,18 +689,32 @@
                 var rect = card.getBoundingClientRect();
                 var x = e.clientX - rect.left - rect.width / 2;
                 var y = e.clientY - rect.top  - rect.height / 2;
-                var rx = -(y / rect.height) * 8;
-                var ry =  (x / rect.width)  * 8;
-                card.style.transform = 'perspective(600px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg) translateY(-4px)';
-                card.style.boxShadow = '0 20px 40px rgba(23,22,21,0.13)';
+                var rx = -(y / rect.height) * 12;
+                var ry =  (x / rect.width)  * 12;
+                card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-8px) scale(1.02)`;
+                card.style.boxShadow = '0 25px 50px -12px rgba(0,0,0,0.15)';
             });
             card.addEventListener('mouseleave', function() {
                 card.style.transform = '';
                 card.style.boxShadow = '';
-                card.style.transition = 'transform 0.5s ease, box-shadow 0.5s ease';
+                card.style.transition = 'transform 0.6s cubic-bezier(0.19,1,0.22,1), box-shadow 0.6s cubic-bezier(0.19,1,0.22,1)';
+            });
+            card.addEventListener('mouseenter', function() {
+                card.style.transition = 'none';
             });
         });
 
+        // ── 5. Simple Parallax Effect on Images ────────────────────
+        const parallaxImages = document.querySelectorAll('.parallax-img');
+        if (parallaxImages.length > 0 && window.matchMedia("(prefers-reduced-motion: no-preference)").matches) {
+            window.addEventListener('scroll', () => {
+                const scrolled = window.pageYOffset;
+                parallaxImages.forEach(img => {
+                    const speed = img.getAttribute('data-speed') || 0.15;
+                    img.style.transform = `translateY(${scrolled * speed}px) scale(1.1)`;
+                });
+            }, { passive: true });
+        }
 
     })();
     </script>
