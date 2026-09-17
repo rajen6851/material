@@ -49,8 +49,72 @@
                 background-color: #171615;
             }
         </style>
+        <style>
+            /* Pristo Loader */
+            #pristo-loader {
+                position: fixed;
+                inset: 0;
+                z-index: 999999;
+                background-color: #faf8f5;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: opacity 0.5s ease, visibility 0.5s ease;
+            }
+            .pristo-loader-container {
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                gap: 5px;
+                height: 70px;
+            }
+            .pristo-ball {
+                width: 18px;
+                height: 18px;
+                background-color: #c09b5a;
+                border-radius: 50%;
+                animation: pristo-bounce 1.2s infinite ease-in-out;
+            }
+            .pristo-shaft {
+                width: 18px;
+                height: 54px;
+                background-color: #c09b5a;
+                border-radius: 9px;
+                animation: pristo-bounce 1.2s infinite ease-in-out 0.15s;
+            }
+            .pristo-ball:nth-child(3) {
+                animation-delay: 0.3s;
+            }
+            @keyframes pristo-bounce {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-16px); }
+            }
+            .hide-loader {
+                opacity: 0;
+                visibility: hidden;
+            }
+        </style>
     </head>
     <body class="antialiased bg-[#faf8f5] text-[#242220] flex flex-col min-h-screen">
+        <!-- Page Loader -->
+        <div id="pristo-loader">
+            <div class="pristo-loader-container">
+                <div class="pristo-ball"></div>
+                <div class="pristo-shaft"></div>
+                <div class="pristo-ball"></div>
+            </div>
+        </div>
+        <script>
+            window.addEventListener('load', function() {
+                const loader = document.getElementById('pristo-loader');
+                if (loader) {
+                    setTimeout(() => {
+                        loader.classList.add('hide-loader');
+                    }, 400); // Short delay to let the animation play a bit
+                }
+            });
+        </script>
+
         @php
             $globalCategories = \App\Models\Category::all();
             $globalRooms = \App\Models\Room::all();

@@ -648,8 +648,6 @@ class AdminController extends Controller implements HasMiddleware
                             $newHeader = $candidateRow;
                             break;
                         }
-                        $newHeader = $candidateRow;
-                        break;
                     }
                     if ($newHeader && !$hasSizeVariants) {
                         $normalizedHeaders = array_map($normalizeHeader, $newHeader);
