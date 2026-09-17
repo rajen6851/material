@@ -237,7 +237,7 @@
                         </div>
 
                         <a href="/inspiration" class="hover:text-[#c09b5a] transition py-1">Inspiration</a>
-                        <a href="/showroom-visit/book" class="text-[#c09b5a] hover:text-[#171615] transition py-1 flex items-center gap-1">
+                        <a href="/showroom-visit/book" class="hover:text-[#c09b5a] transition py-1 flex items-center gap-1 text-[#171615]">
                             <span>Visit Showroom</span>
                         </a>
                         <a href="/about" class="hover:text-[#c09b5a] transition py-1">About Us</a>

@@ -4,8 +4,8 @@
     <!-- Main Container -->
     
     <!-- Custom Premium Cursor -->
-    <div id="pristo-cursor" class="hidden md:block fixed top-0 left-0 w-8 h-8 rounded-full border-2 border-white pointer-events-none z-[99999] mix-blend-difference" style="will-change: transform;"></div>
-    <div id="pristo-cursor-dot" class="hidden md:block fixed top-0 left-0 w-1.5 h-1.5 rounded-full bg-white pointer-events-none z-[100000] mix-blend-difference" style="will-change: transform;"></div>
+    <div id="pristo-cursor" class="fixed top-0 left-0 w-8 h-8 rounded-full border-2 border-[#b58d56] pointer-events-none z-[99999]" style="will-change: transform; display: none;"></div>
+    <div id="pristo-cursor-dot" class="fixed top-0 left-0 w-1.5 h-1.5 rounded-full bg-[#b58d56] pointer-events-none z-[100000]" style="will-change: transform; display: none;"></div>
 
     <div class="space-y-10 sm:space-y-16 pb-12 sm:pb-16" id="smooth-wrapper">
 
@@ -648,6 +648,10 @@
         
         if (cursor && dot && window.matchMedia("(pointer: fine)").matches) {
             
+            // Show the custom cursor elements
+            cursor.style.display = 'block';
+            dot.style.display = 'block';
+
             // Only hide default cursor when JS successfully runs
             document.body.classList.add('has-custom-cursor');
             
