@@ -2,7 +2,12 @@
     <x-slot name="title">PRISTO | Modern Spaces. Timeless Comfort.</x-slot>
 
     <!-- Main Container -->
-    <div class="space-y-10 sm:space-y-16 pb-12 sm:pb-16">
+    
+    <!-- Custom Premium Cursor -->
+    <div id="pristo-cursor" class="hidden md:block fixed top-0 left-0 w-8 h-8 rounded-full border border-[#c09b5a]/60 pointer-events-none z-[9999] transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 ease-out mix-blend-difference"></div>
+    <div id="pristo-cursor-dot" class="hidden md:block fixed top-0 left-0 w-1.5 h-1.5 rounded-full bg-[#c09b5a] pointer-events-none z-[10000] transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-100 ease-out"></div>
+
+    <div class="space-y-10 sm:space-y-16 pb-12 sm:pb-16" id="smooth-wrapper">
 
         <!-- 1. HERO SLIDER SECTION -->
         <div class="max-w-[1550px] mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-4">
