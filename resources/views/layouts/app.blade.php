@@ -50,44 +50,71 @@
             }
         </style>
         <style>
-            /* Pristo Loader */
+            /* Advanced Premium Pristo Loader */
             #pristo-loader {
                 position: fixed;
                 inset: 0;
                 z-index: 999999;
-                background-color: #faf8f5;
+                background-color: #171615; /* Dark luxury background */
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                transition: opacity 0.5s ease, visibility 0.5s ease;
+                transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s ease;
             }
-            .pristo-loader-container {
+            .adv-loader-container {
+                position: relative;
                 display: flex;
                 align-items: flex-end;
                 justify-content: center;
-                gap: 5px;
-                height: 70px;
+                gap: 8px;
+                height: 100px;
+                transform: perspective(400px) rotateX(10deg);
             }
-            .pristo-ball {
-                width: 18px;
-                height: 18px;
-                background-color: #c09b5a;
+            /* Left Sphere */
+            .adv-ball-1 {
+                width: 24px;
+                height: 24px;
+                background: radial-gradient(circle at 30% 30%, #f5eedc, #c09b5a, #8a6c38);
                 border-radius: 50%;
-                animation: pristo-bounce 1.2s infinite ease-in-out;
+                box-shadow: 0 15px 25px rgba(0,0,0,0.6), inset -2px -2px 6px rgba(0,0,0,0.5), inset 2px 2px 8px rgba(255,255,255,0.6);
+                animation: adv-bounce 1.6s infinite cubic-bezier(0.28, 0.84, 0.42, 1);
             }
-            .pristo-shaft {
-                width: 18px;
-                height: 54px;
-                background-color: #c09b5a;
-                border-radius: 9px;
-                animation: pristo-bounce 1.2s infinite ease-in-out 0.15s;
+            /* Middle Pillar */
+            .adv-shaft {
+                width: 24px;
+                height: 75px;
+                background: linear-gradient(145deg, #d4ba85, #a48043);
+                border-radius: 12px;
+                box-shadow: 0 15px 25px rgba(0,0,0,0.6), inset -2px -2px 6px rgba(0,0,0,0.4), inset 2px 2px 8px rgba(255,255,255,0.5);
+                animation: adv-bounce 1.6s infinite cubic-bezier(0.28, 0.84, 0.42, 1) 0.15s;
+                position: relative;
+                overflow: hidden;
             }
-            .pristo-ball:nth-child(3) {
-                animation-delay: 0.3s;
+            .adv-shaft::after {
+                content: '';
+                position: absolute;
+                top: -100%; left: -100%; right: -100%; bottom: -100%;
+                background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
+                transform: rotate(35deg);
+                animation: adv-shine 2.5s infinite linear;
             }
-            @keyframes pristo-bounce {
-                0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-16px); }
+            /* Right Sphere */
+            .adv-ball-2 {
+                width: 24px;
+                height: 24px;
+                background: radial-gradient(circle at 30% 30%, #f5eedc, #c09b5a, #8a6c38);
+                border-radius: 50%;
+                box-shadow: 0 15px 25px rgba(0,0,0,0.6), inset -2px -2px 6px rgba(0,0,0,0.5), inset 2px 2px 8px rgba(255,255,255,0.6);
+                animation: adv-bounce 1.6s infinite cubic-bezier(0.28, 0.84, 0.42, 1) 0.3s;
+            }
+
+            @keyframes adv-bounce {
+                0%, 100% { transform: translateY(0) scaleY(1); }
+                50% { transform: translateY(-25px) scaleY(1.05); }
+            }
+            @keyframes adv-shine {
+                0% { transform: translateY(-100%) rotate(35deg); }
+                100% { transform: translateY(100%) rotate(35deg); }
             }
             .hide-loader {
                 opacity: 0;
@@ -96,12 +123,12 @@
         </style>
     </head>
     <body class="antialiased bg-[#faf8f5] text-[#242220] flex flex-col min-h-screen">
-        <!-- Page Loader -->
+        <!-- Advanced Page Loader -->
         <div id="pristo-loader">
-            <div class="pristo-loader-container">
-                <div class="pristo-ball"></div>
-                <div class="pristo-shaft"></div>
-                <div class="pristo-ball"></div>
+            <div class="adv-loader-container">
+                <div class="adv-ball-1"></div>
+                <div class="adv-shaft"></div>
+                <div class="adv-ball-2"></div>
             </div>
         </div>
         <script>
@@ -110,7 +137,7 @@
                 if (loader) {
                     setTimeout(() => {
                         loader.classList.add('hide-loader');
-                    }, 400); // Short delay to let the animation play a bit
+                    }, 500);
                 }
             });
         </script>
