@@ -4,8 +4,8 @@
     <!-- Main Container -->
     
     <!-- Custom Premium Cursor -->
-    <div id="pristo-cursor" class="hidden md:block fixed top-0 left-0 w-8 h-8 rounded-full border border-[#c09b5a]/60 pointer-events-none z-[9999] transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 ease-out mix-blend-difference"></div>
-    <div id="pristo-cursor-dot" class="hidden md:block fixed top-0 left-0 w-1.5 h-1.5 rounded-full bg-[#c09b5a] pointer-events-none z-[10000] transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-100 ease-out"></div>
+    <div id="pristo-cursor" class="hidden md:block fixed top-0 left-0 w-8 h-8 rounded-full border-2 border-white pointer-events-none z-[99999] mix-blend-difference" style="will-change: transform;"></div>
+    <div id="pristo-cursor-dot" class="hidden md:block fixed top-0 left-0 w-1.5 h-1.5 rounded-full bg-white pointer-events-none z-[100000] mix-blend-difference" style="will-change: transform;"></div>
 
     <div class="space-y-10 sm:space-y-16 pb-12 sm:pb-16" id="smooth-wrapper">
 
@@ -516,22 +516,22 @@
          HOMEPAGE ANIMATIONS — Advanced Level
          ============================================================ --}}
     <style>
-        /* ── Base Reveals ── */
+        /* ── Base Reveals (Like wow fadeInUp) ── */
         .reveal {
             opacity: 0;
-            transform: translateY(40px);
-            transition: opacity 0.9s cubic-bezier(.19, 1, .22, 1), transform 0.9s cubic-bezier(.19, 1, .22, 1);
+            transform: translateY(60px);
+            transition: all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .reveal.visible { opacity: 1; transform: translateY(0); }
 
         .reveal-left {
             opacity: 0;
-            transform: translateX(-50px);
-            transition: opacity 0.9s cubic-bezier(.19, 1, .22, 1), transform 0.9s cubic-bezier(.19, 1, .22, 1);
+            transform: translateX(-60px);
+            transition: all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .reveal-left.visible { opacity: 1; transform: translateX(0); }
 
-        /* ── Advanced Image Curtain Reveal ── */
+        /* ── Advanced Image Curtain / Image Anime ── */
         .image-curtain {
             position: relative;
             overflow: hidden;
@@ -541,19 +541,19 @@
             content: '';
             position: absolute;
             inset: 0;
-            background-color: #171615;
+            background-color: #faf8f5;
             transition: transform 1.2s cubic-bezier(0.77, 0, 0.175, 1);
-            transform-origin: right;
+            transform-origin: top;
             z-index: 10;
         }
-        .image-curtain.visible::after { transform: scaleX(0); }
+        .image-curtain.visible::after { transform: scaleY(0); }
         .image-curtain img {
-            transform: scale(1.15);
-            transition: transform 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+            transform: scale(1.2);
+            transition: transform 2s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .image-curtain.visible img { transform: scale(1); }
 
-        /* ── Text Line Reveal (Text Split) ── */
+        /* ── Text Line Reveal (Text Split Style) ── */
         .text-reveal-wrapper {
             overflow: hidden;
             display: inline-block;
@@ -561,20 +561,22 @@
         }
         .text-reveal-inner {
             display: inline-block;
-            transform: translateY(110%);
-            transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+            opacity: 0;
+            transform: translateY(100%);
+            transition: opacity 1s ease, transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .text-reveal-wrapper.visible .text-reveal-inner {
+            opacity: 1;
             transform: translateY(0);
         }
 
-        /* ── Stagger delays ── */
-        .stagger-1 { transition-delay: 0.1s !important; }
-        .stagger-2 { transition-delay: 0.2s !important; }
-        .stagger-3 { transition-delay: 0.3s !important; }
-        .stagger-4 { transition-delay: 0.4s !important; }
-        .stagger-5 { transition-delay: 0.5s !important; }
-        .stagger-6 { transition-delay: 0.6s !important; }
+        /* ── Stagger delays for fadeInUp ── */
+        .stagger-1 { transition-delay: 0.15s !important; }
+        .stagger-2 { transition-delay: 0.30s !important; }
+        .stagger-3 { transition-delay: 0.45s !important; }
+        .stagger-4 { transition-delay: 0.60s !important; }
+        .stagger-5 { transition-delay: 0.75s !important; }
+        .stagger-6 { transition-delay: 0.90s !important; }
 
         /* ── Section heading underline sweep ── */
         .heading-underline { position: relative; display: inline-block; }
@@ -583,14 +585,14 @@
             position: absolute;
             bottom: -4px; left: 0; width: 0; height: 2px;
             background: linear-gradient(90deg, #b58d56, transparent);
-            transition: width 1s cubic-bezier(0.77, 0, 0.175, 1) 0.3s;
+            transition: width 1s cubic-bezier(0.77, 0, 0.175, 1) 0.5s;
         }
         .heading-underline.visible::after { width: 100%; }
 
         /* ── Smooth zoom out ── */
         .reveal-zoom {
-            opacity: 0; transform: scale(0.92);
-            transition: opacity 0.8s cubic-bezier(0.19,1,0.22,1), transform 0.8s cubic-bezier(0.19,1,0.22,1);
+            opacity: 0; transform: scale(0.9);
+            transition: all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .reveal-zoom.visible { opacity: 1; transform: scale(1); }
 
@@ -599,8 +601,13 @@
         .magnetic-btn > * { pointer-events: none; }
         
         /* ── Custom Cursor Styles ── */
-        body { cursor: none; } /* Hide default cursor */
-        a, button, input, select, textarea { cursor: none; }
+        .has-custom-cursor, .has-custom-cursor * {
+            cursor: none !important;
+        }
+        #pristo-cursor {
+            transition: width 0.3s, height 0.3s, background-color 0.3s, border-color 0.3s;
+            mix-blend-mode: difference;
+        }
     </style>
 
     <script>
@@ -640,46 +647,48 @@
         const dot = document.getElementById('pristo-cursor-dot');
         
         if (cursor && dot && window.matchMedia("(pointer: fine)").matches) {
+            
+            // Only hide default cursor when JS successfully runs
+            document.body.classList.add('has-custom-cursor');
+            
+            let mouseX = 0, mouseY = 0;
+            let cursorX = 0, cursorY = 0;
+            
             document.addEventListener('mousemove', (e) => {
-                cursor.style.left = e.clientX + 'px';
-                cursor.style.top = e.clientY + 'px';
-                dot.style.left = e.clientX + 'px';
-                dot.style.top = e.clientY + 'px';
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                dot.style.transform = `translate3d(${mouseX - 3}px, ${mouseY - 3}px, 0)`; // instantly follow
             });
             
+            // Smooth trailing effect for the ring
+            function animateCursor() {
+                cursorX += (mouseX - cursorX) * 0.15;
+                cursorY += (mouseY - cursorY) * 0.15;
+                cursor.style.transform = `translate3d(${cursorX - 16}px, ${cursorY - 16}px, 0)`;
+                requestAnimationFrame(animateCursor);
+            }
+            animateCursor();
+            
             // Expand cursor on interactive elements
-            document.querySelectorAll('a, button, .magnetic-btn').forEach(el => {
+            document.querySelectorAll('a, button, input, select').forEach(el => {
                 el.addEventListener('mouseenter', () => {
-                    cursor.style.transform = 'translate(-50%, -50%) scale(2.2)';
-                    cursor.style.backgroundColor = 'rgba(192, 155, 90, 0.15)';
+                    cursor.style.width = '60px';
+                    cursor.style.height = '60px';
+                    cursor.style.marginLeft = '-14px'; // compensate for larger size
+                    cursor.style.marginTop = '-14px';
+                    cursor.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
                     cursor.style.borderColor = 'transparent';
                     dot.style.opacity = '0';
                 });
                 el.addEventListener('mouseleave', () => {
-                    cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+                    cursor.style.width = '32px';
+                    cursor.style.height = '32px';
+                    cursor.style.marginLeft = '0px';
+                    cursor.style.marginTop = '0px';
                     cursor.style.backgroundColor = 'transparent';
-                    cursor.style.borderColor = 'rgba(192, 155, 90, 0.6)';
+                    cursor.style.borderColor = 'rgba(255, 255, 255, 0.8)';
                     dot.style.opacity = '1';
-                    
-                    // Reset magnetic button position on leave
-                    if(el.classList.contains('magnetic-btn')) {
-                        el.style.transform = 'translate(0px, 0px)';
-                        el.children[0].style.transform = 'translate(0px, 0px)';
-                    }
                 });
-                
-                // Magnetic effect calculation
-                if(el.classList.contains('magnetic-btn')) {
-                    el.addEventListener('mousemove', (e) => {
-                        const rect = el.getBoundingClientRect();
-                        const x = e.clientX - rect.left - rect.width / 2;
-                        const y = e.clientY - rect.top - rect.height / 2;
-                        el.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px)`;
-                        if(el.children[0]) {
-                            el.children[0].style.transform = `translate(${x * 0.1}px, ${y * 0.1}px)`;
-                        }
-                    });
-                }
             });
         }
 
