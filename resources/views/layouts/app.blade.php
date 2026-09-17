@@ -50,57 +50,76 @@
             }
         </style>
         <style>
-            /* Minimal Abstract D Loader */
+            /* Flower-type Abstract D Loader */
             #pristo-loader {
                 position: fixed;
                 inset: 0;
                 z-index: 999999;
-                background-color: #111418; /* Deep dark luxury background */
+                background-color: #171615; /* Dark luxury background */
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 transition: opacity 0.8s ease, visibility 0.8s ease;
             }
             
-            /* Abstract D Formation */
-            .abstract-d {
+            .flower-loader {
                 position: relative;
-                width: 44px;
-                height: 44px;
-                transform: scale(1.5);
+                width: 60px;
+                height: 60px;
+                animation: spin-flower 6s linear infinite;
             }
-            .abstract-d-spine {
+            
+            .petal {
                 position: absolute;
-                left: 8px;
-                top: 2px;
-                width: 4px;
-                height: 40px;
-                background: linear-gradient(to bottom, #f3e5ab, #d4af37, #8a6c38);
-                border-radius: 2px;
-                animation: pulse-glow 2s infinite alternate;
+                top: 50%;
+                left: 50%;
+                width: 18px;
+                height: 18px;
+                border: 2px solid #c09b5a;
+                /* This is the abstract 'D' shape */
+                border-radius: 0 18px 18px 0; 
+                transform-origin: 0% 0%; 
+                background-color: rgba(192, 155, 90, 0.1);
             }
-            .abstract-d-curve {
-                position: absolute;
-                left: 8px;
-                top: 2px;
-                width: 28px;
-                height: 40px;
-                border: 4px solid #d4af37;
-                border-left: none;
-                border-radius: 0 25px 25px 0;
-                clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
-                animation: curve-reveal 2.5s infinite ease-in-out;
+            
+            .petal:nth-child(1) { animation: bloom1 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; }
+            .petal:nth-child(2) { animation: bloom2 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; animation-delay: 0.1s; }
+            .petal:nth-child(3) { animation: bloom3 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; animation-delay: 0.2s; }
+            .petal:nth-child(4) { animation: bloom4 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; animation-delay: 0.3s; }
+            .petal:nth-child(5) { animation: bloom5 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; animation-delay: 0.4s; }
+            .petal:nth-child(6) { animation: bloom6 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; animation-delay: 0.5s; }
+
+            /* Each petal rotates to its spot and expands/contracts */
+            @keyframes bloom1 { 
+                0% { transform: rotate(0deg) translate(3px, -9px) scale(0.5); opacity: 0.4; } 
+                100% { transform: rotate(0deg) translate(14px, -9px) scale(1.2); opacity: 1; } 
+            }
+            @keyframes bloom2 { 
+                0% { transform: rotate(60deg) translate(3px, -9px) scale(0.5); opacity: 0.4; } 
+                100% { transform: rotate(60deg) translate(14px, -9px) scale(1.2); opacity: 1; } 
+            }
+            @keyframes bloom3 { 
+                0% { transform: rotate(120deg) translate(3px, -9px) scale(0.5); opacity: 0.4; } 
+                100% { transform: rotate(120deg) translate(14px, -9px) scale(1.2); opacity: 1; } 
+            }
+            @keyframes bloom4 { 
+                0% { transform: rotate(180deg) translate(3px, -9px) scale(0.5); opacity: 0.4; } 
+                100% { transform: rotate(180deg) translate(14px, -9px) scale(1.2); opacity: 1; } 
+            }
+            @keyframes bloom5 { 
+                0% { transform: rotate(240deg) translate(3px, -9px) scale(0.5); opacity: 0.4; } 
+                100% { transform: rotate(240deg) translate(14px, -9px) scale(1.2); opacity: 1; } 
+            }
+            @keyframes bloom6 { 
+                0% { transform: rotate(300deg) translate(3px, -9px) scale(0.5); opacity: 0.4; } 
+                100% { transform: rotate(300deg) translate(14px, -9px) scale(1.2); opacity: 1; } 
             }
 
-            @keyframes pulse-glow {
-                0% { box-shadow: 0 0 5px rgba(212,175,55,0.2); }
-                100% { box-shadow: 0 0 15px rgba(212,175,55,0.8); }
+            @keyframes spin-flower {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
             }
-            @keyframes curve-reveal {
-                0%, 10% { clip-path: polygon(0 0, 100% 0, 100% 0, 0 0); }
-                40%, 60% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-                90%, 100% { clip-path: polygon(0 100%, 100% 100%, 100% 100%, 0 100%); }
-            }
+
             .hide-loader {
                 opacity: 0;
                 visibility: hidden;
@@ -108,11 +127,15 @@
         </style>
     </head>
     <body class="antialiased bg-[#faf8f5] text-[#242220] flex flex-col min-h-screen">
-        <!-- Minimal Loader -->
+        <!-- Flower Loader -->
         <div id="pristo-loader">
-            <div class="abstract-d">
-                <div class="abstract-d-spine"></div>
-                <div class="abstract-d-curve"></div>
+            <div class="flower-loader">
+                <div class="petal"></div>
+                <div class="petal"></div>
+                <div class="petal"></div>
+                <div class="petal"></div>
+                <div class="petal"></div>
+                <div class="petal"></div>
             </div>
         </div>
         <script>
