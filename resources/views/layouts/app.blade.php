@@ -50,71 +50,56 @@
             }
         </style>
         <style>
-            /* Advanced Premium Pristo Loader */
+            /* Minimal Abstract D Loader */
             #pristo-loader {
                 position: fixed;
                 inset: 0;
                 z-index: 999999;
-                background-color: #171615; /* Dark luxury background */
+                background-color: #111418; /* Deep dark luxury background */
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s ease;
+                transition: opacity 0.8s ease, visibility 0.8s ease;
             }
-            .adv-loader-container {
+            
+            /* Abstract D Formation */
+            .abstract-d {
                 position: relative;
-                display: flex;
-                align-items: flex-end;
-                justify-content: center;
-                gap: 8px;
-                height: 100px;
-                transform: perspective(400px) rotateX(10deg);
+                width: 44px;
+                height: 44px;
+                transform: scale(1.5);
             }
-            /* Left Sphere */
-            .adv-ball-1 {
-                width: 24px;
-                height: 24px;
-                background: radial-gradient(circle at 30% 30%, #f5eedc, #c09b5a, #8a6c38);
-                border-radius: 50%;
-                box-shadow: 0 15px 25px rgba(0,0,0,0.6), inset -2px -2px 6px rgba(0,0,0,0.5), inset 2px 2px 8px rgba(255,255,255,0.6);
-                animation: adv-bounce 1.6s infinite cubic-bezier(0.28, 0.84, 0.42, 1);
-            }
-            /* Middle Pillar */
-            .adv-shaft {
-                width: 24px;
-                height: 75px;
-                background: linear-gradient(145deg, #d4ba85, #a48043);
-                border-radius: 12px;
-                box-shadow: 0 15px 25px rgba(0,0,0,0.6), inset -2px -2px 6px rgba(0,0,0,0.4), inset 2px 2px 8px rgba(255,255,255,0.5);
-                animation: adv-bounce 1.6s infinite cubic-bezier(0.28, 0.84, 0.42, 1) 0.15s;
-                position: relative;
-                overflow: hidden;
-            }
-            .adv-shaft::after {
-                content: '';
+            .abstract-d-spine {
                 position: absolute;
-                top: -100%; left: -100%; right: -100%; bottom: -100%;
-                background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
-                transform: rotate(35deg);
-                animation: adv-shine 2.5s infinite linear;
+                left: 8px;
+                top: 2px;
+                width: 4px;
+                height: 40px;
+                background: linear-gradient(to bottom, #f3e5ab, #d4af37, #8a6c38);
+                border-radius: 2px;
+                animation: pulse-glow 2s infinite alternate;
             }
-            /* Right Sphere */
-            .adv-ball-2 {
-                width: 24px;
-                height: 24px;
-                background: radial-gradient(circle at 30% 30%, #f5eedc, #c09b5a, #8a6c38);
-                border-radius: 50%;
-                box-shadow: 0 15px 25px rgba(0,0,0,0.6), inset -2px -2px 6px rgba(0,0,0,0.5), inset 2px 2px 8px rgba(255,255,255,0.6);
-                animation: adv-bounce 1.6s infinite cubic-bezier(0.28, 0.84, 0.42, 1) 0.3s;
+            .abstract-d-curve {
+                position: absolute;
+                left: 8px;
+                top: 2px;
+                width: 28px;
+                height: 40px;
+                border: 4px solid #d4af37;
+                border-left: none;
+                border-radius: 0 25px 25px 0;
+                clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+                animation: curve-reveal 2.5s infinite ease-in-out;
             }
 
-            @keyframes adv-bounce {
-                0%, 100% { transform: translateY(0) scaleY(1); }
-                50% { transform: translateY(-25px) scaleY(1.05); }
+            @keyframes pulse-glow {
+                0% { box-shadow: 0 0 5px rgba(212,175,55,0.2); }
+                100% { box-shadow: 0 0 15px rgba(212,175,55,0.8); }
             }
-            @keyframes adv-shine {
-                0% { transform: translateY(-100%) rotate(35deg); }
-                100% { transform: translateY(100%) rotate(35deg); }
+            @keyframes curve-reveal {
+                0%, 10% { clip-path: polygon(0 0, 100% 0, 100% 0, 0 0); }
+                40%, 60% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+                90%, 100% { clip-path: polygon(0 100%, 100% 100%, 100% 100%, 0 100%); }
             }
             .hide-loader {
                 opacity: 0;
@@ -123,12 +108,11 @@
         </style>
     </head>
     <body class="antialiased bg-[#faf8f5] text-[#242220] flex flex-col min-h-screen">
-        <!-- Advanced Page Loader -->
+        <!-- Minimal Loader -->
         <div id="pristo-loader">
-            <div class="adv-loader-container">
-                <div class="adv-ball-1"></div>
-                <div class="adv-shaft"></div>
-                <div class="adv-ball-2"></div>
+            <div class="abstract-d">
+                <div class="abstract-d-spine"></div>
+                <div class="abstract-d-curve"></div>
             </div>
         </div>
         <script>
