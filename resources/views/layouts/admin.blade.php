@@ -69,11 +69,12 @@
                             <a href="/admin/banners" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/banners*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}"><span>&bull; Banner sliders</span></a>
                             <a href="/admin/room-spaces" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/room-spaces*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}"><span>&bull; Room Space</span></a>
                             <a href="/admin/product-attributes" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/product-attributes*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}"><span>&bull; Variant Options</span></a>
-                            <a href="{{ route('admin.packages.index') }}" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/packages*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}">
+                            <a href="{{ \Illuminate\Support\Facades\Route::has('admin.packages.index') ? route('admin.packages.index') : '/admin/packages' }}" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/packages*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}">
                                 <span>&bull; Packages / Combos</span>
                             </a>
                             <a href="/admin/brands" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/brands*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}"><span>&bull; Brands</span></a>
                             
+                            @if(\Illuminate\Support\Facades\Route::has('admin.spotlights.index'))
                             <a href="{{ route('admin.spotlights.index') }}"
    class="flex items-center gap-3 px-4 py-3 rounded-xl
           text-sm font-medium
@@ -87,6 +88,7 @@
     <span>Spotlights</span>
 
 </a>
+                            @endif
                         </div>
 
                         <!-- Orders Fulfillment -->
@@ -107,16 +109,26 @@
                         </div>
 
                         <!-- AI Sales Quotations -->
+                        @if(\Illuminate\Support\Facades\Route::has('admin.ai-quotes.index'))
                         <div class="pt-2">
                             <a href="{{ route('admin.ai-quotes.index') }}" class="w-full py-2.5 rounded-xl pl-4 transition flex items-center gap-3 {{ request()->is('admin/ai-quotes*') ? 'bg-teal-700/30 text-white border-l-4 border-teal-500 pl-3 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                                 <span class="text-sm">🤖</span>
                                 <span>AI Quotations</span>
-                                @php $pendingAiQuotes = \App\Models\AiQuotation::where('status', 'draft_pending')->count(); @endphp
-                                @if($pendingAiQuotes > 0)
-                                    <span class="ml-auto mr-3 bg-amber-500 text-slate-900 text-[10px] font-black px-1.5 py-0.5 rounded-full">{{ $pendingAiQuotes }}</span>
+                                @if(class_exists('\App\Models\AiQuotation'))
+                                    @php 
+                                        try {
+                                            $pendingAiQuotes = \App\Models\AiQuotation::where('status', 'draft_pending')->count();
+                                        } catch (\Throwable $e) {
+                                            $pendingAiQuotes = 0;
+                                        }
+                                    @endphp
+                                    @if($pendingAiQuotes > 0)
+                                        <span class="ml-auto mr-3 bg-amber-500 text-slate-900 text-[10px] font-black px-1.5 py-0.5 rounded-full">{{ $pendingAiQuotes }}</span>
+                                    @endif
                                 @endif
                             </a>
                         </div>
+                        @endif
 
                         <!-- Showroom Visits -->
                         <div class="pt-2">
@@ -126,12 +138,14 @@
                             </a>
                         </div>
                         
-                          <div class="pt-2">
-                            <a href="{{ route('admin.section-headings.index') }}" class="w-full py-2.5 rounded-xl pl-4 transition flex items-center gap-3 {{ request()->is('admin/visits*') ? 'bg-teal-700/30 text-white border-l-4 border-teal-500 pl-3 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                        @if(\Illuminate\Support\Facades\Route::has('admin.section-headings.index'))
+                        <div class="pt-2">
+                            <a href="{{ route('admin.section-headings.index') }}" class="w-full py-2.5 rounded-xl pl-4 transition flex items-center gap-3 {{ request()->is('admin/section-headings*') ? 'bg-teal-700/30 text-white border-l-4 border-teal-500 pl-3 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                                 <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                                 <span>Heading</span>
                             </a>
                         </div>
+                        @endif
 
 
                         <!-- Contact Inquiries -->
