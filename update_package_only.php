@@ -51,36 +51,43 @@ if (file_exists($brandPath)) {
 $adminLayoutPath = __DIR__ . '/resources/views/layouts/admin.blade.php';
 if (file_exists($adminLayoutPath)) {
     $adminContent = file_get_contents($adminLayoutPath);
+    // Fix any broken tags if previously inserted
+    $adminContent = preg_replace('/<a\s+<a\s+href="\{\{\s*route\(\'admin\.packages\.index\'\)\s*\}\}"/s', '<a href="{{ route(\'admin.packages.index\') }}"', $adminContent);
+    $adminContent = preg_replace('/(<\/a>\s+)(href="\/admin\/brands")/s', '$1<a $2', $adminContent);
+    
     if (strpos($adminContent, 'admin.packages.index') === false) {
-        $needle = 'href="/admin/brands"';
+        $needle = '<a href="/admin/brands"';
         $insert = "<a href=\"{{ route('admin.packages.index') }}\" class=\"w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/packages*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}\">\n" .
                   "    <span>&bull; Packages / Combos</span>\n" .
                   "</a>\n                            ";
         if (strpos($adminContent, $needle) !== false) {
             $adminContent = str_replace($needle, $insert . $needle, $adminContent);
-            file_put_contents($adminLayoutPath, $adminContent);
             echo "[OK] Packages link added to admin sidebar\n";
         }
     }
+    file_put_contents($adminLayoutPath, $adminContent);
 }
 
 // 4. Update website header in resources/views/layouts/app.blade.php if needed
 $appLayoutPath = __DIR__ . '/resources/views/layouts/app.blade.php';
 if (file_exists($appLayoutPath)) {
     $appContent = file_get_contents($appLayoutPath);
+    // Fix any broken tags if previously inserted
+    $appContent = preg_replace('/<a\s+<a\s+href="\/packages"/s', '<a href="/packages"', $appContent);
+    $appContent = preg_replace('/(<\/a>\s+)(href="\/inspiration")/s', '$1<a $2', $appContent);
+
     if (strpos($appContent, 'href="/packages"') === false) {
-        $needle = 'href="/inspiration"';
+        $needle = '<a href="/inspiration"';
         $insert = "<a href=\"/packages\" class=\"hover:text-[#c09b5a] transition py-1 flex items-center gap-1.5 text-[#171615]\">\n" .
                   "    <span>Packages</span>\n" .
                   "    <span class=\"text-[9px] bg-[#c09b5a] text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider\">Combos</span>\n" .
                   "</a>\n\n                    ";
-        $pos = strpos($appContent, $needle);
-        if ($pos !== false) {
-            $appContent = substr_replace($appContent, $insert . $needle, $pos, strlen($needle));
-            file_put_contents($appLayoutPath, $appContent);
+        if (strpos($appContent, $needle) !== false) {
+            $appContent = str_replace($needle, $insert . $needle, $appContent);
             echo "[OK] Packages link added to website navigation\n";
         }
     }
+    file_put_contents($appLayoutPath, $appContent);
 }
 
 // 5. Run Migration
