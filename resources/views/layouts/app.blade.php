@@ -2170,9 +2170,7 @@
     </script>
 
     {{-- Pristo AI Sales Agent Widget --}}
-    @if(view()->exists('components.ai-chat-widget'))
-        <x-ai-chat-widget />
-    @endif
+    {{-- <x-ai-chat-widget /> --}}
 
 </body>
 
