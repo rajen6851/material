@@ -27,7 +27,7 @@
                             <div class="flex-grow text-center sm:text-left space-y-1.5">
                                 <a href="/products/{{ $item['slug'] }}" class="font-bold text-slate-800 hover:text-teal-600 text-base line-clamp-1 transition">{{ $item['name'] }}</a>
                                 <p class="text-xs text-slate-400">Includes GST ({{ $item['gst_percent'] }}%)</p>
-                                <div class="text-sm font-extrabold text-slate-900">₹{{ number_format($item['price'], 2) }} <span class="text-xs text-slate-400 font-light">/ box</span></div>
+                                <div class="text-sm font-extrabold text-slate-900">₹{{ number_format(round($item['price'])) }} <span class="text-xs text-slate-400 font-light">/ box</span></div>
                             </div>
 
                             <!-- Quantity Form -->
@@ -52,7 +52,7 @@
 
                             <!-- Subtotal -->
                             <div class="text-right font-extrabold text-slate-900 text-base sm:w-28">
-                                ₹{{ number_format($item['price'] * $item['quantity'], 2) }}
+                                ₹{{ number_format(round($item['price'] * $item['quantity'])) }}
                             </div>
                         </div>
                     @endforeach
@@ -86,13 +86,13 @@
                         <div class="space-y-3.5 text-sm text-slate-600">
                             <div class="flex justify-between">
                                 <span>Subtotal</span>
-                                <span class="font-semibold text-slate-800">₹{{ number_format($subtotal, 2) }}</span>
+                                <span class="font-semibold text-slate-800">₹{{ number_format(round($subtotal)) }}</span>
                             </div>
                             
                             @if($discount > 0)
                                 <div class="flex justify-between text-red-600 font-medium">
                                     <span>Coupon Discount</span>
-                                    <span>-₹{{ number_format($discount, 2) }}</span>
+                                    <span>-₹{{ number_format(round($discount)) }}</span>
                                 </div>
                             @endif
 
@@ -103,13 +103,13 @@
 
                             <div class="flex justify-between text-xs text-slate-400 pt-2 border-t">
                                 <span>Incl. GST (Est.)</span>
-                                <span>₹{{ number_format($totalTax, 2) }}</span>
+                                <span>₹{{ number_format(round($totalTax)) }}</span>
                             </div>
                         </div>
 
                         <div class="border-t pt-4 flex justify-between items-baseline">
                             <span class="font-extrabold text-slate-900 text-base">Grand Total</span>
-                            <span class="font-black text-slate-900 text-2xl">₹{{ number_format($total, 2) }}</span>
+                            <span class="font-black text-slate-900 text-2xl">₹{{ number_format(round($total)) }}</span>
                         </div>
 
                         <a href="/checkout" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold h-14 rounded-xl shadow-lg hover:shadow-teal-500/20 transition flex items-center justify-center gap-2">

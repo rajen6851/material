@@ -38,7 +38,7 @@
                     @foreach($order->items as $item)
                         <div class="py-3 flex justify-between">
                             <span class="text-slate-600">{{ $item->product->name ?? ($item->product_name ?? 'Product #' . $item->product_id) }} <strong class="text-slate-900">x{{ $item->quantity }}</strong></span>
-                            <span class="font-bold text-slate-900">₹{{ number_format($item->total, 2) }}</span>
+                            <span class="font-bold text-slate-900">₹{{ number_format(round($item->total)) }}</span>
                         </div>
                     @endforeach
                 </div>
@@ -48,25 +48,25 @@
             <div class="border-t pt-4 space-y-2 text-sm text-slate-600">
                 <div class="flex justify-between">
                     <span>Subtotal</span>
-                    <span>₹{{ number_format($order->subtotal, 2) }}</span>
+                    <span>₹{{ number_format(round($order->subtotal)) }}</span>
                 </div>
                 @if($order->discount > 0)
                     <div class="flex justify-between text-red-600 font-medium">
                         <span>Discount</span>
-                        <span>-₹{{ number_format($order->discount, 2) }}</span>
+                        <span>-₹{{ number_format(round($order->discount)) }}</span>
                     </div>
                 @endif
                 <div class="flex justify-between items-center">
                     <span>Shipping</span>
                     @if($order->shipping > 0)
-                        <span>₹{{ number_format($order->shipping, 2) }}</span>
+                        <span>₹{{ number_format(round($order->shipping)) }}</span>
                     @else
                         <span class="font-bold text-[#b58d56] text-xs uppercase">Charges Applicable (At Actuals)</span>
                     @endif
                 </div>
                 <div class="flex justify-between text-slate-900 font-extrabold text-base pt-2 border-t">
                     <span>Total Paid</span>
-                    <span>₹{{ number_format($order->total, 2) }}</span>
+                    <span>₹{{ number_format(round($order->total)) }}</span>
                 </div>
             </div>
         </div>

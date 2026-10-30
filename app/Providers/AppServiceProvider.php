@@ -19,6 +19,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('website_settings')) {
+                \Illuminate\Support\Facades\View::share('siteSettings', \App\Models\WebsiteSetting::first());
+            }
+        } catch (\Exception $e) {
+            // Ignore for artisan commands
+        }
     }
 }

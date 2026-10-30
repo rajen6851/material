@@ -14,10 +14,13 @@ use App\Models\ProductImage;
 use App\Models\ProductAttribute;
 use App\Models\SubCategory;
 use App\Models\Coupon;
+use App\Models\WebsiteSetting;
+use App\Models\ContactInquiry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller implements HasMiddleware
 {
@@ -35,6 +38,68 @@ class AdminController extends Controller implements HasMiddleware
             }
         ];
     }
+
+public function bulkDelete(Request $request)
+{
+    $request->validate([
+        'product_ids' => ['required', 'array', 'min:1'],
+        'product_ids.*' => ['integer', 'exists:products,id'],
+    ]);
+
+    $ids = $request->input('product_ids');
+
+    DB::transaction(function () use ($ids) {
+
+        // Remove product-room relationships first
+        DB::table('product_room')
+            ->whereIn('product_id', $ids)
+            ->delete();
+
+        // Delete products
+        Product::whereIn('id', $ids)->delete();
+    });
+
+    return redirect()
+        ->route('admin.products')
+        ->with(
+            'success',
+            count($ids) . ' product(s) deleted successfully.'
+        );
+}
+
+public function searchRelatedProducts(Request $request)
+{
+    $search = trim($request->get('search', ''));
+
+    if (strlen($search) < 2) {
+        return response()->json([
+            'products' => []
+        ]);
+    }
+
+    $products = Product::query()
+        ->select([
+            'id',
+            'name',
+            'sku',
+            'price',
+            'mrp'
+        ])
+        ->where(function ($query) use ($search) {
+
+            $query->where('name', 'LIKE', "%{$search}%")
+                ->orWhere('sku', 'LIKE', "%{$search}%");
+
+        })
+        ->orderBy('name')
+        ->limit(30)
+        ->get();
+
+    return response()->json([
+        'products' => $products
+    ]);
+}
+
 
     /**
      * Admin Dashboard Index.
@@ -93,6 +158,22 @@ class AdminController extends Controller implements HasMiddleware
 
         return view('admin.orders', compact('orders', 'counts', 'status', 'search'));
     }
+    
+    public function toggleFeatured($id)
+{
+    $product = Product::findOrFail($id);
+
+    $product->is_featured = !$product->is_featured;
+
+    $product->save();
+
+    return back()->with(
+        'success',
+        $product->is_featured
+            ? 'Product marked as featured.'
+            : 'Product removed from featured.'
+    );
+}
 
     /**
      * View Detailed Order Information.
@@ -163,6 +244,40 @@ class AdminController extends Controller implements HasMiddleware
     }
 
     /**
+     * Manage Website Settings.
+     */
+    public function websiteSettings()
+    {
+        $settings = WebsiteSetting::first() ?? new WebsiteSetting();
+        return view('admin.website-settings', compact('settings'));
+    }
+
+    /**
+     * Update Website Settings.
+     */
+    public function updateWebsiteSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:150',
+            'address' => 'nullable|string',
+            'facebook_url' => 'nullable|url|max:255',
+            'instagram_url' => 'nullable|url|max:255',
+            'twitter_url' => 'nullable|url|max:255',
+            'youtube_url' => 'nullable|url|max:255',
+        ]);
+
+        $settings = WebsiteSetting::first();
+        if ($settings) {
+            $settings->update($validated);
+        } else {
+            WebsiteSetting::create($validated);
+        }
+
+        return redirect()->back()->with('success', 'Website settings updated successfully.');
+    }
+
+    /**
      * Manage Quotations.
      */
     public function quotations()
@@ -219,14 +334,136 @@ class AdminController extends Controller implements HasMiddleware
     }
 
     /* -------------------------------------------------------------
+     * USERS MANAGEMENT
+     * ------------------------------------------------------------- */
+    public function users()
+    {
+        $users = \App\Models\User::orderBy('created_at', 'desc')->paginate(20);
+        return view('admin.users', compact('users'));
+    }
+
+    /* -------------------------------------------------------------
+     * REPORTS & ANALYTICS
+     * ------------------------------------------------------------- */
+    public function reports()
+    {
+        $data = [
+            'total_products' => Product::count(),
+            'total_orders' => Order::count(),
+            'total_quotations' => QuotationRequest::count(),
+            'total_visits' => ShowroomVisit::count(),
+            'total_inquiries' => ContactInquiry::count(),
+            'total_categories' => Category::count(),
+            'total_brands' => Brand::count(),
+            'total_users' => \App\Models\User::count(),
+            'b2b_users' => \App\Models\User::where('role', 'professional')->count(),
+            'total_revenue' => Order::where('order_status', '!=', 'cancelled')->sum('total'),
+            'pending_orders' => Order::where('order_status', 'pending')->count(),
+            
+            // Dummy chart data for demo
+            'recent_orders' => Order::orderBy('created_at', 'desc')->take(10)->get(),
+        ];
+        return view('admin.reports', compact('data'));
+    }
+
+    /* -------------------------------------------------------------
      * CRUD: PRODUCTS
      * ------------------------------------------------------------- */
+     public function products(Request $request)
+{
+    $query = Product::with(['category', 'rooms', 'brand']);
 
-    public function products()
-    {
-        $products = Product::with(['category', 'room', 'brand'])->orderBy('created_at', 'desc')->get();
-        return view('admin.products.index', compact('products'));
+    if ($request->filled('category_id')) {
+        $query->where('category_id', $request->category_id);
     }
+
+    if ($request->filled('sub_category')) {
+        $query->where('sub_category', $request->sub_category);
+    }
+
+    if ($request->filled('room_id')) {
+        $query->whereHas('rooms', function ($q) use ($request) {
+            $q->where('rooms.id', $request->room_id);
+        });
+    }
+
+    if ($request->filled('brand_id')) {
+        $query->where('brand_id', $request->brand_id);
+    }
+
+    if ($request->filled('search')) {
+        $search = $request->search;
+
+        $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', '%' . $search . '%')
+              ->orWhere('sku', 'like', '%' . $search . '%');
+        });
+    }
+
+    // ALL PRODUCTS ON ONE PAGE
+    $products = $query->orderBy('created_at', 'desc')->get();
+
+    $categories = Category::all();
+    $subcategories = SubCategory::all();
+    $rooms = Room::all();
+    $brands = Brand::all();
+
+    $totalProducts = Product::count();
+    $inStock = Product::where('stock', '>', 0)->count();
+    $featured = Product::where('is_featured', true)->count();
+    $avgPrice = Product::avg('price') ?: 0;
+
+    return view(
+        'admin.products.index',
+        compact(
+            'products',
+            'categories',
+            'subcategories',
+            'rooms',
+            'brands',
+            'totalProducts',
+            'inStock',
+            'featured',
+            'avgPrice'
+        )
+    );
+}
+
+    // public function products(Request $request)
+    // {
+    //     $query = Product::with(['category', 'room', 'brand']);
+
+    //     if ($request->filled('category_id')) {
+    //         $query->where('category_id', $request->category_id);
+    //     }
+    //     if ($request->filled('sub_category')) {
+    //         $query->where('sub_category', $request->sub_category);
+    //     }
+    //     if ($request->filled('room_id')) {
+    //         $query->where('room_id', $request->room_id);
+    //     }
+    //     if ($request->filled('brand_id')) {
+    //         $query->where('brand_id', $request->brand_id);
+    //     }
+    //     if ($request->filled('search')) {
+    //         $query->where('name', 'like', '%' . $request->search . '%')
+    //               ->orWhere('sku', 'like', '%' . $request->search . '%');
+    //     }
+
+    //     $products = $query->orderBy('created_at', 'desc')->paginate(15);
+    //     $products->appends($request->all());
+
+    //     $categories = Category::all();
+    //     $subcategories = SubCategory::all();
+    //     $rooms = Room::all();
+    //     $brands = Brand::all();
+    //     $totalProducts = Product::count();
+    //     $inStock = Product::where('stock', '>', 0)->count();
+    //     $featured = Product::where('is_featured', true)->count();
+    //     $avgPrice = Product::avg('price') ?: 0;
+
+    //     return view('admin.products.index', compact('products', 'categories', 'subcategories', 'rooms', 'brands', 'totalProducts', 'inStock', 'featured', 'avgPrice'));
+    // }
 
     public function productImportForm()
     {
@@ -943,7 +1180,6 @@ class AdminController extends Controller implements HasMiddleware
                     'stock' => $stock,
                     'rating' => 4.90,
                     'category_id' => $categoryId,
-                    'room_id' => $roomId,
                     'brand_id' => $brandId,
                     'collection' => $collection,
                     'sub_category' => $subCategory,
@@ -989,6 +1225,10 @@ class AdminController extends Controller implements HasMiddleware
                     $productData['slug'] = $slug;
                     $product = Product::create($productData);
                     $createdCount++;
+                }
+                
+                if ($roomId) {
+                    $product->rooms()->sync([$roomId], false);
                 }
 
                 // Generate image name from product name if not provided
@@ -1041,222 +1281,961 @@ class AdminController extends Controller implements HasMiddleware
         }
     }
 
+    // public function productCreate()
+    // {
+    //     $categories = Category::with('subCategories')->get();
+    //     $rooms = Room::all();
+    //     $brands = Brand::all();
+    //     $attributes = ProductAttribute::getAllGrouped();
+    //     $subCategories = SubCategory::orderBy('sort_order')->get();
+    //     return view('admin.products.create', compact('categories', 'rooms', 'brands', 'attributes', 'subCategories'));
+    // }
     public function productCreate()
-    {
-        $categories = Category::with('subCategories')->get();
-        $rooms = Room::all();
-        $brands = Brand::all();
-        $attributes = ProductAttribute::getAllGrouped();
-        $subCategories = SubCategory::orderBy('sort_order')->get();
-        return view('admin.products.create', compact('categories', 'rooms', 'brands', 'attributes', 'subCategories'));
+{
+    $categories = Category::with('subCategories')->get();
+    $rooms = Room::all();
+    $brands = Brand::all();
+    $attributes = ProductAttribute::getAllGrouped();
+    $subCategories = SubCategory::orderBy('sort_order')->get();
+
+    $colors = ProductAttribute::where('type', 'color')
+        ->where('is_active', true)
+        ->orderBy('sort_order')
+        ->orderBy('value')
+        ->get();
+        
+    $allProducts = Product::orderBy('name')->get();
+
+    return view('admin.products.create', compact(
+        'categories',
+        'rooms',
+        'brands',
+        'attributes',
+        'subCategories',
+        'colors',
+        'allProducts'
+    ));
+}
+
+public function productStore(Request $request)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
+
+    $request->validate([
+        // Basic
+        'name' => 'required|string|max:255',
+        'sku' => 'required|string|max:255|unique:products,sku',
+
+        // Relations
+        'category_id' => 'required|exists:categories,id',
+
+        // Multiple Rooms
+        'room_ids' => 'nullable|array',
+        'room_ids.*' => 'exists:rooms,id',
+
+        'brand_id' => 'nullable|exists:brands,id',
+
+        // Attributes
+        'collection' => 'nullable|string|max:255',
+        'material' => 'nullable|string|max:255',
+        'finish' => 'nullable|string|max:255',
+        'color' => 'nullable|string|max:255',
+        'pattern_type' => 'nullable|string|max:255',
+        'edge_type' => 'nullable|string|max:255',
+
+        // Tile details
+        'sub_category' => 'nullable|string|max:255',
+        'width_mm' => 'nullable|numeric',
+        'height_mm' => 'nullable|numeric',
+        'size' => 'nullable|string|max:255',
+        'size_inch' => 'nullable|string|max:255',
+        'thickness' => 'nullable|string|max:255',
+
+        'area_tile_sqft' => 'nullable|numeric',
+        'coverage_area' => 'nullable|string|max:255',
+        'water_absorption' => 'nullable|string|max:255',
+        // 'application_area' => 'nullable|string|max:255',
+        'application_area' => 'nullable|array',
+'application_area.*' => 'string|max:255',
+
+        'pieces_per_box' => 'nullable|integer|min:0',
+        'coverage_per_box_sqft' => 'nullable|numeric|min:0',
+        'weight_per_box_kg' => 'nullable|numeric|min:0',
+
+        // Pricing
+        'gst_percent' => 'nullable|numeric|min:0|max:100',
+        'price_per_box' => 'nullable|numeric|min:0',
+        'wholesale_price' => 'nullable|numeric|min:0',
+        'price_per_sqft' => 'nullable|numeric|min:0',
+
+        'stock' => 'nullable|integer|min:0',
+
+        'mrp' => 'required|numeric|min:0',
+
+        'discount' => 'nullable|numeric|min:0|max:100',
+
+        // Other
+        'warranty' => 'nullable|string|max:255',
+        'delivery_time' => 'nullable|string|max:255',
+
+        // SEO
+        'seo_meta_title' => 'nullable|string|max:255',
+        'seo_meta_description' => 'nullable|string',
+        'catalog_page' => 'nullable|string|max:255',
+
+        // Description
+        'short_description' => 'nullable|string',
+        'description' => 'nullable|string',
+
+        // Images
+        'images' => 'nullable|array',
+        'images.*' => 'nullable|image|max:2048',
+
+        // Image Colors
+        'colors' => 'nullable|array',
+        'colors.*' => 'nullable|string|max:100',
+
+        // Toggles
+        'is_featured' => 'nullable|boolean',
+        'is_trending' => 'nullable|boolean',
+        'is_new' => 'nullable|boolean',
+
+        // WC / EWC Details
+        'model_article_no' => 'nullable|string|max:255',
+        'product_type' => 'nullable|string|max:255',
+        'trap_type' => 'nullable|string|max:255',
+        'outlet_type' => 'nullable|string|max:255',
+        'flush_type' => 'nullable|string|max:255',
+        'mounting_type' => 'nullable|string|max:255',
+        'seat_cover' => 'nullable|string|max:255',
+        'flush_tank' => 'nullable|string|max:255',
+        'availability' => 'nullable|string|max:255',
+        'weight' => 'nullable|numeric|min:0',
+        'flushing_system' => 'nullable|string|max:255',
+        'installation' => 'nullable|string|max:255',
+        'related_product_ids' => 'nullable|array',
+        'related_product_ids.*' => 'exists:products,id',
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Generate Unique Slug
+    |--------------------------------------------------------------------------
+    */
+
+    $name = $request->input('name');
+
+    $slug = Str::slug($name);
+
+    $originalSlug = $slug;
+    $count = 1;
+
+    while (Product::where('slug', $slug)->exists()) {
+        $slug = $originalSlug . '-' . $count;
+        $count++;
     }
 
-    public function productStore(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'sku' => 'required|string|unique:products,sku',
-            'mrp' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'category_id' => 'required|exists:categories,id',
-            'room_id' => 'required|exists:rooms,id',
-            'brand_id' => 'required|exists:brands,id',
-            'image' => 'nullable|image|max:2048'
-        ]);
 
-        $slug = Str::slug($request->input('name'));
+    /*
+    |--------------------------------------------------------------------------
+    | Calculate Selling Price
+    |--------------------------------------------------------------------------
+    */
 
-        // Handle image upload
-        $imagePath = 'images/products/product1a.svg'; // fallback default
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/products'), $fileName);
-            $imagePath = 'images/products/' . $fileName;
+    $mrp = (float) $request->input('mrp');
+
+    $discount = (float) $request->input('discount', 0);
+
+    // Keep discount between 0 and 100
+    $discount = max(0, min(100, $discount));
+
+    // Selling Price (rounded off)
+    $price = round($mrp - (($mrp * $discount) / 100));
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Image Path Variable
+    |--------------------------------------------------------------------------
+    |
+    | This was missing in your previous code.
+    |
+    */
+
+    $imagePath = null;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create Product
+    |--------------------------------------------------------------------------
+    |
+    */
+
+    $product = Product::create([
+
+        // Basic
+        'name' => $name,
+        'slug' => $slug,
+        'sku' => $request->input('sku'),
+
+        // Pricing
+        'mrp' => round($mrp, 2),
+        'price' => round($price),
+        'discount' => round($discount, 2),
+        'gst_percent' => $request->input('gst_percent', 18),
+
+        // Stock
+        'stock' => $request->input('stock', 0),
+
+        // Relations
+        'category_id' => $request->input('category_id'),
+        'brand_id' => $request->input('brand_id'),
+
+        // Attributes
+        'collection' => $request->input('collection'),
+        'material' => $request->input('material'),
+        'finish' => $request->input('finish'),
+        'pattern_type' => $request->input('pattern_type'),
+        'edge_type' => $request->input('edge_type'),
+
+        // Tile Details
+        'sub_category' => $request->input('sub_category'),
+
+        'width_mm' => $request->input('width_mm'),
+        'height_mm' => $request->input('height_mm'),
+
+        'size' => $request->input('size'),
+        'size_inch' => $request->input('size_inch'),
+        'thickness' => $request->input('thickness'),
+
+        'area_tile_sqft' => $request->input('area_tile_sqft'),
+        'coverage_area' => $request->input('coverage_area'),
+
+        'water_absorption' => $request->input('water_absorption'),
+        'application_area' => $request->input('application_area'),
+
+        'pieces_per_box' => $request->input('pieces_per_box'),
+        'coverage_per_box_sqft' => $request->input('coverage_per_box_sqft'),
+        'weight_per_box_kg' => $request->input('weight_per_box_kg'),
+
+        // Box / Wholesale Pricing
+        'price_per_box' => $request->input('price_per_box'),
+        'wholesale_price' => $request->input('wholesale_price'),
+        'price_per_sqft' => $request->input('price_per_sqft'),
+
+        // Other
+        'warranty' => $request->input('warranty'),
+        'delivery_time' => $request->input('delivery_time'),
+
+        // SEO
+        'seo_meta_title' => $request->input('seo_meta_title'),
+        'seo_meta_description' => $request->input('seo_meta_description'),
+        'catalog_page' => $request->input('catalog_page'),
+
+        // Description
+        'short_description' => $request->input('short_description'),
+        'description' => $request->input('description'),
+
+        // Toggles
+        'is_featured' => $request->boolean('is_featured'),
+        'is_trending' => $request->boolean('is_trending'),
+        'is_new' => $request->boolean('is_new', true),
+
+        // WC / EWC Details
+        'model_article_no' => $request->input('model_article_no'),
+        'product_type' => $request->input('product_type'),
+        'trap_type' => $request->input('trap_type'),
+        'outlet_type' => $request->input('outlet_type'),
+        'flush_type' => $request->input('flush_type'),
+        'mounting_type' => $request->input('mounting_type'),
+        'seat_cover' => $request->input('seat_cover'),
+        'flush_tank' => $request->input('flush_tank'),
+        'flushing_system' => $request->input('flushing_system'),
+        'installation' => $request->input('installation'),
+        'availability' => $request->input('availability'),
+        'weight' => $request->input('weight'),
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Attach Multiple Rooms
+    |--------------------------------------------------------------------------
+    |
+    | room_ids[]:
+    | [3, 5, 7]
+    |
+    | product_room:
+    | product_id | room_id
+    |
+    */
+
+    $roomIds = $request->input('room_ids', []);
+
+    if (!empty($roomIds)) {
+        $product->rooms()->sync($roomIds);
+    }
+
+    $relatedProductIds = $request->input('related_product_ids', []);
+    $product->relatedProducts()->sync($relatedProductIds);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create Product Images With Colors
+    |--------------------------------------------------------------------------
+    */
+
+    $images = $request->file('images', []);
+    $colors = $request->input('colors', []);
+
+    if (!empty($images)) {
+
+        foreach ($images as $index => $file) {
+
+            if (!$file || !$file->isValid()) {
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Generate Safe File Name
+            |--------------------------------------------------------------------------
+            */
+
+            $fileName = time()
+                . '_'
+                . uniqid()
+                . '_'
+                . preg_replace(
+                    '/[^A-Za-z0-9._-]/',
+                    '_',
+                    $file->getClientOriginalName()
+                );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Move Image
+            |--------------------------------------------------------------------------
+            */
+
+            $file->move(
+                public_path('images/products'),
+                $fileName
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Image Path
+            |--------------------------------------------------------------------------
+            */
+
+            $currentImagePath = 'images/products/' . $fileName;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | First Image = Primary Image
+            |--------------------------------------------------------------------------
+            */
+
+            ProductImage::create([
+                'product_id' => $product->id,
+
+                'image_path' => $currentImagePath,
+
+                // Image ke saath color
+                'color' => $colors[$index] ?? null,
+
+                // First valid image primary
+                'is_primary' => $index === 0,
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | First Image For SubCategory
+            |--------------------------------------------------------------------------
+            */
+
+            if ($imagePath === null) {
+                $imagePath = $currentImagePath;
+            }
         }
 
-        $product = Product::create([
-            'name' => $request->input('name'),
-            'slug' => $slug,
-            'sku' => $request->input('sku'),
-            'description' => $request->input('description'),
-            'short_description' => $request->input('short_description'),
-            'mrp' => $request->input('mrp'),
-            'price' => $request->input('price'),
-            'discount' => max(0, $request->input('mrp') - $request->input('price')),
-            'stock' => $request->input('stock'),
-            'category_id' => $request->input('category_id'),
-            'room_id' => $request->input('room_id'),
-            'brand_id' => $request->input('brand_id'),
-            // Specs
-            'size' => $request->input('size', '600x600 mm'),
-            'color' => $request->input('color'),
-            'finish' => $request->input('finish', 'Glossy'),
-            'material' => $request->input('material', 'Ceramic'),
-            'thickness' => $request->input('thickness', '9 mm'),
-            'coverage_area' => $request->input('coverage_area'),
-            'water_absorption' => $request->input('water_absorption'),
-            'warranty' => $request->input('warranty'),
-            'delivery_time' => $request->input('delivery_time'),
-            'gst_percent' => $request->input('gst_percent', 18),
-            // Spreadsheet fields
-            'collection' => $request->input('collection'),
-            'sub_category' => $request->input('sub_category'),
-            'width_mm' => $request->input('width_mm'),
-            'height_mm' => $request->input('height_mm'),
-            'size_inch' => $request->input('size_inch'),
-            'area_tile_sqft' => $request->input('area_tile_sqft'),
-            'pattern_type' => $request->input('pattern_type'),
-            'edge_type' => $request->input('edge_type'),
-            'pieces_per_box' => $request->input('pieces_per_box'),
-            'coverage_per_box_sqft' => $request->input('coverage_per_box_sqft'),
-            'weight_per_box_kg' => $request->input('weight_per_box_kg'),
-            'price_per_box' => $request->input('price_per_box'),
-            'wholesale_price' => $request->input('wholesale_price'),
-            'price_per_sqft' => $request->input('price_per_sqft'),
-            'application_area' => $request->input('application_area'),
-            // SEO
-            'seo_meta_title' => $request->input('seo_meta_title'),
-            'seo_meta_description' => $request->input('seo_meta_description'),
-            'catalog_page' => $request->input('catalog_page'),
-            // Toggles
-            'is_featured' => $request->boolean('is_featured'),
-            'is_trending' => $request->boolean('is_trending'),
-            'is_new' => $request->boolean('is_new', true),
-        ]);
+    } else {
+
+        /*
+        |--------------------------------------------------------------------------
+        | No Image Uploaded
+        |--------------------------------------------------------------------------
+        */
+
+        $imagePath = 'images/products/product1a.svg';
 
         ProductImage::create([
             'product_id' => $product->id,
+
             'image_path' => $imagePath,
-            'is_primary' => true
+
+            'color' => null,
+
+            'is_primary' => true,
         ]);
-
-        if ($request->filled('sub_category') && $request->filled('category_id')) {
-            SubCategory::firstOrCreate(
-                [
-                    'category_id' => $request->input('category_id'),
-                    'slug' => Str::slug($request->input('sub_category'))
-                ],
-                [
-                    'name' => $request->input('sub_category'),
-                    'image' => $imagePath ?: 'images/categories/tiles.svg',
-                    'sort_order' => 1
-                ]
-            );
-        }
-
-        return redirect()->route('admin.products')->with('success', 'Product created successfully.');
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create Sub Category If Not Exists
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $request->filled('sub_category') &&
+        $request->filled('category_id')
+    ) {
+
+        SubCategory::firstOrCreate(
+            [
+                'category_id' => $request->input('category_id'),
+
+                'slug' => Str::slug(
+                    $request->input('sub_category')
+                ),
+            ],
+            [
+                'name' => $request->input('sub_category'),
+
+                // First product image
+                // or default tiles image
+                'image' => $imagePath ?: 'images/categories/tiles.svg',
+
+                'sort_order' => 1,
+            ]
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Redirect
+    |--------------------------------------------------------------------------
+    */
+
+    return redirect()
+        ->route('admin.products')
+        ->with(
+            'success',
+            'Product created successfully.'
+        );
+}
     public function productEdit($id)
     {
-        $product = Product::findOrFail($id);
+        // $product = Product::findOrFail($id);
+        $product = Product::with('rooms')->findOrFail($id);
         $categories = Category::with('subCategories')->get();
         $rooms = Room::all();
         $brands = Brand::all();
         $attributes = ProductAttribute::getAllGrouped();
         $subCategories = SubCategory::orderBy('sort_order')->get();
-        return view('admin.products.edit', compact('product', 'categories', 'rooms', 'brands', 'attributes', 'subCategories'));
+            // Active colors for product edit dropdown
+    $colors = ProductAttribute::where('type', 'color')
+        ->where('is_active', true)
+        ->orderBy('sort_order')
+        ->orderBy('value')
+        ->get();
+    
+    $allProducts = Product::where('id', '!=', $product->id)->orderBy('name')->get();
+
+    return view('admin.products.edit', compact('product', 'categories', 'rooms', 'brands', 'attributes', 'subCategories','colors', 'allProducts'));
     }
 
-    public function productUpdate(Request $request, $id)
-    {
-        $product = Product::findOrFail($id);
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'sku' => 'required|string|unique:products,sku,' . $product->id,
-            'mrp' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'category_id' => 'required|exists:categories,id',
-            'room_id' => 'required|exists:rooms,id',
-            'brand_id' => 'required|exists:brands,id',
-            'image' => 'nullable|image|max:2048'
-        ]);
+ public function productUpdate(Request $request, $id)
+{
+    $product = Product::findOrFail($id);
 
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/products'), $fileName);
-            $imagePath = 'images/products/' . $fileName;
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'sku' => 'required|string|unique:products,sku,' . $product->id,
 
-            // Delete old images and set new primary
-            ProductImage::where('product_id', $product->id)->delete();
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image_path' => $imagePath,
+        'mrp' => 'required|numeric|min:0',
+        'discount' => 'nullable|numeric|min:0|max:100',
+        'price' => 'required|numeric|min:0',
+
+        'stock' => 'required|integer|min:0',
+
+        'category_id' => 'required|exists:categories,id',
+        // 'room_id' => 'required|exists:rooms,id',
+        'room_ids' => 'nullable|array',
+'room_ids.*' => 'exists:rooms,id',
+        'brand_id' => 'required|exists:brands,id',
+
+        // Multiple Images
+        'images' => 'nullable|array',
+        'images.*' => 'image|mimes:jpg,jpeg,png,webp,gif|max:2048',
+
+        // Delete Images
+        'delete_images' => 'nullable|array',
+        'delete_images.*' => 'integer|exists:product_images,id',
+        
+        // WC / EWC Details
+'model_article_no' => 'nullable|string|max:255',
+
+'product_type' => 'nullable|string|max:255',
+
+'trap_type' => 'nullable|string|max:255',
+
+'outlet_type' => 'nullable|string|max:255',
+
+'flush_type' => 'nullable|string|max:255',
+
+'mounting_type' => 'nullable|string|max:255',
+
+'seat_cover' => 'nullable|string|max:255',
+
+'flush_tank' => 'nullable|string|max:255',
+
+'flushing_system' => 'nullable|string|max:255',
+
+'installation' => 'nullable|string|max:255',
+
+'availability' => 'nullable|string|max:255',
+
+'weight' => 'nullable|numeric|min:0',
+'related_product_ids' => 'nullable|array',
+'related_product_ids.*' => 'exists:products,id',
+
+'application_area' => 'nullable|array',
+'application_area.*' => 'string|max:255',
+
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CALCULATE MRP, DISCOUNT & SELLING PRICE
+    |--------------------------------------------------------------------------
+    */
+
+    $mrp = (float) $request->input('mrp');
+
+    // Discount percentage entered by admin
+    $discount = (float) $request->input('discount', 0);
+
+    // Keep discount between 0 and 100
+    $discount = max(0, min(100, $discount));
+
+    // Calculate selling price from MRP and discount % (rounded off)
+    $price = round($mrp - (($mrp * $discount) / 100));
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE SELECTED IMAGES
+    |--------------------------------------------------------------------------
+    */
+
+    if ($request->filled('delete_images')) {
+
+        $imagesToDelete = ProductImage::where('product_id', $product->id)
+            ->whereIn('id', $request->delete_images)
+            ->get();
+
+        foreach ($imagesToDelete as $image) {
+
+            $fullPath = public_path($image->image_path);
+
+            if (
+                file_exists($fullPath) &&
+                !str_contains($image->image_path, 'product1a.svg')
+            ) {
+                unlink($fullPath);
+            }
+
+            $image->delete();
+        }
+    }
+    
+    /*
+|--------------------------------------------------------------------------
+| UPDATE EXISTING IMAGE COLORS
+|--------------------------------------------------------------------------
+*/
+
+if ($request->has('existing_colors')) {
+
+    foreach ($request->input('existing_colors', []) as $imageId => $color) {
+
+        ProductImage::where('id', $imageId)
+            ->where('product_id', $product->id)
+            ->update([
+                'color' => $color ?: null,
+            ]);
+    }
+}
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPLOAD NEW IMAGES
+    |--------------------------------------------------------------------------
+    */
+
+    if ($request->hasFile('images')) {
+
+        // Check existing primary image
+        $hasPrimary = ProductImage::where('product_id', $product->id)
+            ->where('is_primary', true)
+            ->exists();
+
+        // foreach ($request->file('images') as $file) {
+
+        //     if (!$file->isValid()) {
+        //         continue;
+        //     }
+
+        //     $fileName = time()
+        //         . '_'
+        //         . uniqid()
+        //         . '_'
+        //         . preg_replace(
+        //             '/[^A-Za-z0-9._-]/',
+        //             '_',
+        //             $file->getClientOriginalName()
+        //         );
+
+        //     $file->move(
+        //         public_path('images/products'),
+        //         $fileName
+        //     );
+
+        //     ProductImage::create([
+        //         'product_id' => $product->id,
+        //         'image_path' => 'images/products/' . $fileName,
+
+        //         // First image becomes primary
+        //         // only when no primary exists
+        //         'is_primary' => !$hasPrimary,
+        //     ]);
+
+        //     $hasPrimary = true;
+        // }
+        
+        foreach ($request->file('images') as $index => $file) {
+
+    if (!$file->isValid()) {
+        continue;
+    }
+
+    $fileName = time()
+        . '_'
+        . uniqid()
+        . '_'
+        . preg_replace(
+            '/[^A-Za-z0-9._-]/',
+            '_',
+            $file->getClientOriginalName()
+        );
+
+    $file->move(
+        public_path('images/products'),
+        $fileName
+    );
+
+    ProductImage::create([
+        'product_id' => $product->id,
+        'color' => $request->input("colors.$index") ?: null,
+        'image_path' => 'images/products/' . $fileName,
+
+        // First image becomes primary
+        // only when no primary exists
+        'is_primary' => !$hasPrimary,
+    ]);
+
+    $hasPrimary = true;
+}
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MAKE SURE PRODUCT HAS A PRIMARY IMAGE
+    |--------------------------------------------------------------------------
+    */
+
+    $hasPrimary = ProductImage::where('product_id', $product->id)
+        ->where('is_primary', true)
+        ->exists();
+
+    if (!$hasPrimary) {
+
+        $firstImage = ProductImage::where('product_id', $product->id)
+            ->orderBy('id')
+            ->first();
+
+        if ($firstImage) {
+
+            $firstImage->update([
                 'is_primary' => true
             ]);
+
+        } else {
+
+            // No image left → default image
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_path' => 'images/products/product1a.svg',
+                'is_primary' => true,
+            ]);
         }
-
-        $product->update([
-            'name' => $request->input('name'),
-            'slug' => Str::slug($request->input('name')),
-            'sku' => $request->input('sku'),
-            'description' => $request->input('description'),
-            'short_description' => $request->input('short_description'),
-            'mrp' => $request->input('mrp'),
-            'price' => $request->input('price'),
-            'discount' => max(0, $request->input('mrp') - $request->input('price')),
-            'stock' => $request->input('stock'),
-            'category_id' => $request->input('category_id'),
-            'room_id' => $request->input('room_id'),
-            'brand_id' => $request->input('brand_id'),
-            // Specs
-            'size' => $request->input('size'),
-            'color' => $request->input('color'),
-            'finish' => $request->input('finish'),
-            'material' => $request->input('material'),
-            'thickness' => $request->input('thickness'),
-            'coverage_area' => $request->input('coverage_area'),
-            'water_absorption' => $request->input('water_absorption'),
-            'warranty' => $request->input('warranty'),
-            'delivery_time' => $request->input('delivery_time'),
-            'gst_percent' => $request->input('gst_percent', 18),
-            // Spreadsheet fields
-            'collection' => $request->input('collection'),
-            'sub_category' => $request->input('sub_category'),
-            'width_mm' => $request->input('width_mm'),
-            'height_mm' => $request->input('height_mm'),
-            'size_inch' => $request->input('size_inch'),
-            'area_tile_sqft' => $request->input('area_tile_sqft'),
-            'pattern_type' => $request->input('pattern_type'),
-            'edge_type' => $request->input('edge_type'),
-            'pieces_per_box' => $request->input('pieces_per_box'),
-            'coverage_per_box_sqft' => $request->input('coverage_per_box_sqft'),
-            'weight_per_box_kg' => $request->input('weight_per_box_kg'),
-            'price_per_box' => $request->input('price_per_box'),
-            'wholesale_price' => $request->input('wholesale_price'),
-            'price_per_sqft' => $request->input('price_per_sqft'),
-            'application_area' => $request->input('application_area'),
-            // SEO
-            'seo_meta_title' => $request->input('seo_meta_title'),
-            'seo_meta_description' => $request->input('seo_meta_description'),
-            'catalog_page' => $request->input('catalog_page'),
-            // Toggles
-            'is_featured' => $request->boolean('is_featured'),
-            'is_trending' => $request->boolean('is_trending'),
-            'is_new' => $request->boolean('is_new'),
-        ]);
-
-        if ($request->filled('sub_category') && $request->filled('category_id')) {
-            SubCategory::firstOrCreate(
-                [
-                    'category_id' => $request->input('category_id'),
-                    'slug' => Str::slug($request->input('sub_category'))
-                ],
-                [
-                    'name' => $request->input('sub_category'),
-                    'image' => $imagePath ?? 'images/categories/tiles.svg',
-                    'sort_order' => 1
-                ]
-            );
-        }
-
-        return redirect()->route('admin.products')->with('success', 'Product updated successfully.');
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE PRODUCT
+    |--------------------------------------------------------------------------
+    */
+
+    $product->update([
+
+        'name' => $request->input('name'),
+
+        'slug' => Str::slug(
+            $request->input('name')
+        ),
+
+        'sku' => $request->input('sku'),
+
+        'description' => $request->input('description'),
+
+        'short_description' => $request->input('short_description'),
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | PRICING
+        |--------------------------------------------------------------------------
+        */
+
+        // Example:
+        // MRP = 880
+        // Discount = 20%
+        // Price = 704
+
+        'mrp' => round($mrp, 2),
+
+        'price' => round($price),
+
+        // IMPORTANT:
+        // Save percentage, NOT discount amount
+        'discount' => round($discount, 2),
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | STOCK & CLASSIFICATION
+        |--------------------------------------------------------------------------
+        */
+
+        'stock' => $request->input('stock'),
+
+        'category_id' => $request->input('category_id'),
+
+        // 'room_id' => $request->input('room_id'),
+
+        'brand_id' => $request->input('brand_id'),
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SPECS
+        |--------------------------------------------------------------------------
+        */
+
+        'size' => $request->input('size'),
+
+        'color' => $request->input('color'),
+
+        'finish' => $request->input('finish'),
+
+        'material' => $request->input('material'),
+
+        'thickness' => $request->input('thickness'),
+
+        'coverage_area' => $request->input('coverage_area'),
+
+        'water_absorption' => $request->input('water_absorption'),
+
+        'warranty' => $request->input('warranty'),
+
+        'delivery_time' => $request->input('delivery_time'),
+
+        'gst_percent' => $request->input('gst_percent', 18),
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SPREADSHEET FIELDS
+        |--------------------------------------------------------------------------
+        */
+
+        'collection' => $request->input('collection'),
+
+        'sub_category' => $request->input('sub_category'),
+
+        'width_mm' => $request->input('width_mm'),
+
+        'height_mm' => $request->input('height_mm'),
+
+        'size_inch' => $request->input('size_inch'),
+
+        'area_tile_sqft' => $request->input('area_tile_sqft'),
+
+        'pattern_type' => $request->input('pattern_type'),
+
+        'edge_type' => $request->input('edge_type'),
+
+        'pieces_per_box' => $request->input('pieces_per_box'),
+
+        'coverage_per_box_sqft' =>
+            $request->input('coverage_per_box_sqft'),
+
+        'weight_per_box_kg' =>
+            $request->input('weight_per_box_kg'),
+
+        'price_per_box' =>
+            $request->input('price_per_box'),
+
+        'wholesale_price' =>
+            $request->input('wholesale_price'),
+
+        'price_per_sqft' =>
+            $request->input('price_per_sqft'),
+
+        'application_area' =>
+            $request->input('application_area'),
+            
+            // WC / EWC Details
+
+'model_article_no' => $request->input('model_article_no'),
+
+'product_type' => $request->input('product_type'),
+
+'trap_type' => $request->input('trap_type'),
+
+'outlet_type' => $request->input('outlet_type'),
+
+'flush_type' => $request->input('flush_type'),
+
+'mounting_type' => $request->input('mounting_type'),
+
+'seat_cover' => $request->input('seat_cover'),
+
+'flush_tank' => $request->input('flush_tank'),
+
+'flushing_system' => $request->input('flushing_system'),
+
+'installation' => $request->input('installation'),
+
+
+'availability' => $request->input('availability'),
+
+'weight' => $request->input('weight'),
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SEO
+        |--------------------------------------------------------------------------
+        */
+
+        'seo_meta_title' =>
+            $request->input('seo_meta_title'),
+
+        'seo_meta_description' =>
+            $request->input('seo_meta_description'),
+
+        'catalog_page' =>
+            $request->input('catalog_page'),
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | TOGGLES
+        |--------------------------------------------------------------------------
+        */
+
+        'is_featured' =>
+            $request->boolean('is_featured'),
+
+        'is_trending' =>
+            $request->boolean('is_trending'),
+
+        'is_new' =>
+            $request->boolean('is_new'),
+    ]);
+
+$product->rooms()->sync($request->room_ids ?? []);
+$product->relatedProducts()->sync($request->related_product_ids ?? []);
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE SUB CATEGORY
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $request->filled('sub_category') &&
+        $request->filled('category_id')
+    ) {
+
+        SubCategory::firstOrCreate(
+
+            [
+                'category_id' =>
+                    $request->input('category_id'),
+
+                'slug' =>
+                    Str::slug(
+                        $request->input('sub_category')
+                    ),
+            ],
+
+            [
+                'name' =>
+                    $request->input('sub_category'),
+
+                'image' =>
+                    'images/categories/tiles.svg',
+
+                'sort_order' => 1,
+            ]
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUCCESS
+    |--------------------------------------------------------------------------
+    */
+
+    return redirect()
+        ->route('admin.products')
+        ->with(
+            'success',
+            'Product updated successfully.'
+        );
+}
     public function productDelete($id)
     {
         $product = Product::findOrFail($id);
@@ -1271,6 +2250,7 @@ class AdminController extends Controller implements HasMiddleware
     public function categories()
     {
         $categories = Category::with('subCategories')->get();
+        // dd($categories);
         return view('admin.categories.index', compact('categories'));
     }
 
@@ -1506,6 +2486,7 @@ class AdminController extends Controller implements HasMiddleware
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:rooms,name',
+            'tagline' => 'nullable|string|max:255',
             'image' => 'nullable|image|max:2048'
         ]);
 
@@ -1520,6 +2501,7 @@ class AdminController extends Controller implements HasMiddleware
         Room::create([
             'name' => $request->input('name'),
             'slug' => Str::slug($request->input('name')),
+            'tagline' => $request->input('tagline'),
             'image' => $imagePath
         ]);
 
@@ -1537,6 +2519,7 @@ class AdminController extends Controller implements HasMiddleware
         $room = Room::findOrFail($id);
         $request->validate([
             'name' => 'required|string|max:255|unique:rooms,name,' . $room->id,
+            'tagline' => 'nullable|string|max:255',
             'image' => 'nullable|image|max:2048'
         ]);
 
@@ -1551,6 +2534,7 @@ class AdminController extends Controller implements HasMiddleware
         $room->update([
             'name' => $request->input('name'),
             'slug' => Str::slug($request->input('name')),
+            'tagline' => $request->input('tagline'),
             'image' => $imagePath
         ]);
 

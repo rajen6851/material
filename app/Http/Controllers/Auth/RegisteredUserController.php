@@ -33,13 +33,12 @@ class RegisteredUserController extends Controller
             'role' => ['required', 'string', 'in:homeowner,professional'],
             'professional_type' => ['required_if:role,professional', 'nullable', 'string', 'in:contractor,architect,designer,builder'],
             'company_name' => ['required_if:role,professional', 'nullable', 'string', 'max:255'],
-            'gst_number' => ['required_if:role,professional', 'nullable', 'string', 'regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/'],
+            'gst_number' => ['nullable', 'string', 'regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/'],
             'company_profile' => ['nullable', 'string'],
         ], [
             'gst_number.regex' => 'Please enter a valid GST number (e.g. 27AAACJ1234D1Z5).',
             'professional_type.required_if' => 'Please select your profession.',
             'company_name.required_if' => 'Company name is required for professional registration.',
-            'gst_number.required_if' => 'GST number is required for professional registration.',
         ]);
 
         $user = User::create([

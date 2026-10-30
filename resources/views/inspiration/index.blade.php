@@ -55,55 +55,17 @@
                 </span>
             </button>
 
+            @foreach($rooms as $room)
             <button type="button" 
-                    @click="selectedFilter = 'bathroom'" 
-                    :class="selectedFilter === 'bathroom' ? 'bg-[#171615] text-white' : 'bg-white text-[#55504a] hover:bg-[#f5f0ea] border border-[#ded7cd]'"
+                    @click="selectedFilter = '{{ $room->slug }}'" 
+                    :class="selectedFilter === '{{ $room->slug }}' ? 'bg-[#171615] text-white' : 'bg-white text-[#55504a] hover:bg-[#f5f0ea] border border-[#ded7cd]'"
                     class="px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 flex-shrink-0">
-                <span>Bathrooms</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full" :class="selectedFilter === 'bathroom' ? 'bg-[#c09b5a] text-white' : 'bg-slate-100 text-slate-600'">
-                    {{ count(array_filter($allProjects, fn($p) => $p['space'] === 'bathroom')) }}
+                <span>{{ $room->name }}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" :class="selectedFilter === '{{ $room->slug }}' ? 'bg-[#c09b5a] text-white' : 'bg-slate-100 text-slate-600'">
+                    {{ $allProjects->where('space', $room->slug)->count() }}
                 </span>
             </button>
-
-            <button type="button" 
-                    @click="selectedFilter = 'living-room'" 
-                    :class="selectedFilter === 'living-room' ? 'bg-[#171615] text-white' : 'bg-white text-[#55504a] hover:bg-[#f5f0ea] border border-[#ded7cd]'"
-                    class="px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 flex-shrink-0">
-                <span>Living Rooms</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full" :class="selectedFilter === 'living-room' ? 'bg-[#c09b5a] text-white' : 'bg-slate-100 text-slate-600'">
-                    {{ count(array_filter($allProjects, fn($p) => $p['space'] === 'living-room')) }}
-                </span>
-            </button>
-
-            <button type="button" 
-                    @click="selectedFilter = 'kitchen'" 
-                    :class="selectedFilter === 'kitchen' ? 'bg-[#171615] text-white' : 'bg-white text-[#55504a] hover:bg-[#f5f0ea] border border-[#ded7cd]'"
-                    class="px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 flex-shrink-0">
-                <span>Kitchens</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full" :class="selectedFilter === 'kitchen' ? 'bg-[#c09b5a] text-white' : 'bg-slate-100 text-slate-600'">
-                    {{ count(array_filter($allProjects, fn($p) => $p['space'] === 'kitchen')) }}
-                </span>
-            </button>
-
-            <button type="button" 
-                    @click="selectedFilter = 'outdoor'" 
-                    :class="selectedFilter === 'outdoor' ? 'bg-[#171615] text-white' : 'bg-white text-[#55504a] hover:bg-[#f5f0ea] border border-[#ded7cd]'"
-                    class="px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 flex-shrink-0">
-                <span>Outdoor &amp; Deck</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full" :class="selectedFilter === 'outdoor' ? 'bg-[#c09b5a] text-white' : 'bg-slate-100 text-slate-600'">
-                    {{ count(array_filter($allProjects, fn($p) => $p['space'] === 'outdoor')) }}
-                </span>
-            </button>
-
-            <button type="button" 
-                    @click="selectedFilter = 'commercial'" 
-                    :class="selectedFilter === 'commercial' ? 'bg-[#171615] text-white' : 'bg-white text-[#55504a] hover:bg-[#f5f0ea] border border-[#ded7cd]'"
-                    class="px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 flex-shrink-0">
-                <span>Commercial</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full" :class="selectedFilter === 'commercial' ? 'bg-[#c09b5a] text-white' : 'bg-slate-100 text-slate-600'">
-                    {{ count(array_filter($allProjects, fn($p) => $p['space'] === 'commercial')) }}
-                </span>
-            </button>
+            @endforeach
         </div>
 
         <!-- Project Cards Grid (Pure Server-Side Blade Rendering with Instant Images) -->

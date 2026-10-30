@@ -22,12 +22,22 @@ class Product extends Model
         'is_trending' => 'boolean',
         'is_new' => 'boolean',
         'stock' => 'integer',
+        'application_area' => 'array',
+         'weight' => 'decimal:2'
     ];
 
-    public function room()
-    {
-        return $this->belongsTo(Room::class);
-    }
+ 
+
+
+public function rooms()
+{
+    return $this->belongsToMany(
+        Room::class,
+        'product_room',
+        'product_id',
+        'room_id'
+    );
+}
 
     public function category()
     {
@@ -44,13 +54,18 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
+    public function relatedProducts()
+    {
+        return $this->belongsToMany(Product::class, 'related_products', 'product_id', 'related_product_id');
+    }
+
     /**
      * Many-to-many relationship with rooms.
      */
-    public function rooms()
-    {
-        return $this->belongsToMany(Room::class, 'product_room', 'product_id', 'room_id');
-    }
+    // public function rooms()
+    // {
+    //     return $this->belongsToMany(Room::class, 'product_room', 'product_id', 'room_id');
+    // }
 
     public function getFeaturedImageAttribute()
     {

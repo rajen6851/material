@@ -54,7 +54,6 @@ EOT;
             Product::updateOrCreate(['sku' => $sku], [
                 'name' => $name,
                 'slug' => Str::slug($name),
-                'room_id' => $parkingRoom->id,
                 'category_id' => $tilesCat->id,
                 'brand_id' => $somanyBrand->id,
                 'collection' => $collection,
@@ -72,6 +71,7 @@ EOT;
                 'seo_meta_title' => $meta_title,
                 'seo_meta_description' => $meta_desc,
             ]);
+            $product->rooms()->sync([$parkingRoom->id], false);
         }
         
         // Let's add some of the Asian Gress ones manually to show we seeded them.
@@ -88,10 +88,9 @@ EOT;
         ];
         
         foreach($agTiles as $t) {
-            Product::updateOrCreate(['sku' => $t[0]], [
+            $product = Product::updateOrCreate(['sku' => $t[0]], [
                 'name' => $t[1],
                 'slug' => Str::slug($t[1]),
-                'room_id' => $bathroomRoom->id,
                 'category_id' => $tilesCat->id,
                 'brand_id' => $agBrand->id,
                 'color' => $t[2],
@@ -100,6 +99,7 @@ EOT;
                 'price' => 1040,
                 'mrp' => 1150,
             ]);
+            $product->rooms()->sync([$bathroomRoom->id], false);
         }
     }
 }

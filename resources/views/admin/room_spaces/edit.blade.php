@@ -15,6 +15,10 @@
                     <input type="text" name="name" value="{{ $room->name }}" required class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
                 </div>
                 <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tagline / Subtitle</label>
+                    <input type="text" name="tagline" value="{{ $room->tagline }}" placeholder="Explore complete solutions for {{ strtolower($room->name) }} space" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
+                </div>
+                <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Current Image</label>
                     @if($room->image)
                         <img src="{{ asset($room->image) }}" alt="{{ $room->name }}" class="w-20 h-20 object-cover border rounded-xl bg-slate-50 mb-2">

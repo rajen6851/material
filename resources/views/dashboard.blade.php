@@ -249,7 +249,7 @@
                                         <span class="font-bold text-slate-800 font-mono">{{ $ord->order_number }}</span>
                                         <span class="text-xs text-slate-400 block">{{ $ord->created_at->format('M d, Y') }}</span>
                                     </div>
-                                    <span class="font-bold text-slate-900">₹{{ number_format($ord->total, 2) }}</span>
+                                    <span class="font-bold text-slate-900">₹{{ number_format(round($ord->total)) }}</span>
                                 </div>
                             @endforeach
                         </div>

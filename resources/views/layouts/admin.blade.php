@@ -69,7 +69,24 @@
                             <a href="/admin/banners" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/banners*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}"><span>&bull; Banner sliders</span></a>
                             <a href="/admin/room-spaces" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/room-spaces*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}"><span>&bull; Room Space</span></a>
                             <a href="/admin/product-attributes" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/product-attributes*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}"><span>&bull; Variant Options</span></a>
+                            <a href="{{ route('admin.packages.index') }}" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/packages*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}">
+                                <span>&bull; Packages / Combos</span>
+                            </a>
                             <a href="/admin/brands" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/brands*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}"><span>&bull; Brands</span></a>
+                            
+                            <a href="{{ route('admin.spotlights.index') }}"
+   class="flex items-center gap-3 px-4 py-3 rounded-xl
+          text-sm font-medium
+          {{ request()->routeIs('admin.spotlights.*')
+              ? 'bg-indigo-50 text-indigo-600'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600' }}
+          transition">
+
+    <span class="text-lg">🖼️</span>
+
+    <span>Spotlights</span>
+
+</a>
                         </div>
 
                         <!-- Orders Fulfillment -->
@@ -89,6 +106,18 @@
                             </a>
                         </div>
 
+                        <!-- AI Sales Quotations -->
+                        <div class="pt-2">
+                            <a href="{{ route('admin.ai-quotes.index') }}" class="w-full py-2.5 rounded-xl pl-4 transition flex items-center gap-3 {{ request()->is('admin/ai-quotes*') ? 'bg-teal-700/30 text-white border-l-4 border-teal-500 pl-3 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                <span class="text-sm">🤖</span>
+                                <span>AI Quotations</span>
+                                @php $pendingAiQuotes = \App\Models\AiQuotation::where('status', 'draft_pending')->count(); @endphp
+                                @if($pendingAiQuotes > 0)
+                                    <span class="ml-auto mr-3 bg-amber-500 text-slate-900 text-[10px] font-black px-1.5 py-0.5 rounded-full">{{ $pendingAiQuotes }}</span>
+                                @endif
+                            </a>
+                        </div>
+
                         <!-- Showroom Visits -->
                         <div class="pt-2">
                             <a href="/admin/visits" class="w-full py-2.5 rounded-xl pl-4 transition flex items-center gap-3 {{ request()->is('admin/visits*') ? 'bg-teal-700/30 text-white border-l-4 border-teal-500 pl-3 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
@@ -96,6 +125,14 @@
                                 <span>Showroom Visits</span>
                             </a>
                         </div>
+                        
+                          <div class="pt-2">
+                            <a href="{{ route('admin.section-headings.index') }}" class="w-full py-2.5 rounded-xl pl-4 transition flex items-center gap-3 {{ request()->is('admin/visits*') ? 'bg-teal-700/30 text-white border-l-4 border-teal-500 pl-3 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                <span>Heading</span>
+                            </a>
+                        </div>
+
 
                         <!-- Contact Inquiries -->
                         <div class="pt-2">
@@ -104,15 +141,18 @@
                                 <span>Contact Inquiries</span>
                             </a>
                         </div>
+                        
+                        
 
                         <!-- System metrics labels -->
                         <div class="text-slate-500 text-[10px] uppercase font-bold tracking-wider pl-4 pt-5 block space-y-1">
                             <span class="block text-slate-500">System Admin</span>
+                            <a href="/admin/blogs" class="block py-1.5 {{ request()->is('admin/blogs*') ? 'text-teal-400' : 'text-slate-400' }} hover:text-white transition">Blog / CMS</a>
+                            <a href="/admin/inspirations" class="block py-1.5 {{ request()->is('admin/inspirations*') ? 'text-teal-400' : 'text-slate-400' }} hover:text-white transition">Inspirations (Gallery)</a>
                             <a href="/admin/coupons" class="block py-1.5 {{ request()->is('admin/coupons*') ? 'text-teal-400' : 'text-slate-400' }} hover:text-white transition">Coupons &amp; Promos</a>
-                            <span class="block py-1.5 text-slate-400 hover:text-white transition cursor-pointer">Website Settings</span>
-                            <span class="block py-1.5 text-slate-400 hover:text-white transition cursor-pointer">Reports &amp; Analytics</span>
-                            <span class="block py-1.5 text-slate-400 hover:text-white transition cursor-pointer">SEO Tools</span>
-                            <span class="block py-1.5 text-slate-400 hover:text-white transition cursor-pointer">User Roles (Verify)</span>
+                            <a href="/admin/website-settings" class="block py-1.5 {{ request()->is('admin/website-settings*') ? 'text-teal-400' : 'text-slate-400' }} hover:text-white transition cursor-pointer">Website Settings</a>
+                            <a href="/admin/reports" class="block py-1.5 {{ request()->is('admin/reports*') ? 'text-teal-400' : 'text-slate-400' }} hover:text-white transition cursor-pointer">Reports &amp; Analytics</a>
+                            <a href="/admin/users" class="block py-1.5 {{ request()->is('admin/users*') ? 'text-teal-400' : 'text-slate-400' }} hover:text-white transition cursor-pointer">User Management</a>
                         </div>
                     </nav>
                 </div>

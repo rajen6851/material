@@ -34,6 +34,9 @@
         <a href="{{ route('admin.quotations') }}">Quotations Desk</a>
         <a href="{{ route('admin.visits') }}">Showroom Visits</a>
         <a href="{{ route('admin.coupons') }}">Coupons &amp; Promos</a>
+        <a href="{{ route('admin.blogs.index') }}">Blog / CMS</a>
+        <a href="{{ route('admin.inspirations.index') }}">Inspirations (Gallery)</a>
+        <a href="{{ route('admin.inquiries') }}">Contact Inquiries</a>
         <a href="#">Website Settings</a>
         <a href="#">Reports &amp; Analytics</a>
         <a href="#">SEO Tools</a>

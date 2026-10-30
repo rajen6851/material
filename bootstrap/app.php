@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserRole::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'api/ai/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

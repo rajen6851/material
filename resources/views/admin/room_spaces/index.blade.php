@@ -15,6 +15,10 @@
                         <input type="text" name="name" required placeholder="e.g. Living Room, Kitchen, Bathroom" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
                     </div>
                     <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tagline / Subtitle</label>
+                        <input type="text" name="tagline" placeholder="Explore complete solutions for bathroom space" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
+                    </div>
+                    <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Room Space Image</label>
                         <input type="file" name="image" class="w-full border-slate-200 text-xs p-2">
                     </div>
@@ -32,6 +36,7 @@
                             <tr class="border-b bg-slate-50 text-slate-500 font-bold uppercase">
                                 <th class="py-3 px-4">Image</th>
                                 <th class="py-3 px-4">Room Space Name</th>
+                                <th class="py-3 px-4">Tagline</th>
                                 <th class="py-3 px-4">Slug</th>
                                 <th class="py-3 px-4 text-right">Action</th>
                             </tr>
@@ -43,6 +48,7 @@
                                         <img src="{{ asset($room->image) }}" alt="img" class="w-10 h-10 object-cover border rounded bg-slate-50">
                                     </td>
                                     <td class="py-3 px-4 font-bold text-slate-800 text-sm">{{ $room->name }}</td>
+                                    <td class="py-3 px-4 text-slate-500 text-xs">{{ $room->tagline ?: ('Explore complete solutions for ' . strtolower($room->name) . ' space') }}</td>
                                     <td class="py-3 px-4 font-mono text-slate-400">{{ $room->slug }}</td>
                                     <td class="py-3 px-4 text-right flex justify-end gap-2">
                                         <a href="{{ route('admin.room-spaces.edit', $room->id) }}" class="bg-slate-100 hover:bg-teal-50 hover:text-teal-700 text-slate-700 font-bold px-3 py-1.5 rounded-lg transition">Edit</a>

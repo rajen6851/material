@@ -121,12 +121,14 @@
                             </label>
                             
                             <label class="border rounded-xl p-4 flex items-center gap-3 cursor-pointer hover:border-teal-500 hover:bg-slate-50/50 transition">
-                                <input type="radio" name="payment_method" value="card" class="text-teal-600 focus:ring-teal-500">
+                                <input type="radio" name="payment_method" value="online" class="text-teal-600 focus:ring-teal-500">
                                 <div>
-                                    <div class="font-bold text-slate-800 text-sm">Credit / Debit Card</div>
-                                    <div class="text-xs text-slate-500 mt-0.5">Pay securely online (demo mock gateway).</div>
+                                    <div class="font-bold text-slate-800 text-sm">Online Payment (Razorpay)</div>
+                                    <div class="text-xs text-slate-500 mt-0.5">Pay securely via UPI, Cards, NetBanking.</div>
                                 </div>
                             </label>
+                            
+                            <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
                         </div>
                     </div>
                 </div>
@@ -139,7 +141,7 @@
                         @foreach($cartItems as $item)
                             <div class="flex justify-between items-center gap-3 text-xs">
                                 <span class="font-semibold text-slate-800 line-clamp-1 flex-1">{{ $item['name'] }} <span class="text-slate-400 text-[10px]">x{{ $item['quantity'] }}</span></span>
-                                <span class="font-bold text-slate-900">₹{{ number_format($item['price'] * $item['quantity'], 2) }}</span>
+                                <span class="font-bold text-slate-900">₹{{ number_format(round($item['price'] * $item['quantity'])) }}</span>
                             </div>
                         @endforeach
                     </div>
@@ -147,13 +149,13 @@
                     <div class="space-y-3.5 text-sm text-slate-600 border-t pt-4">
                         <div class="flex justify-between">
                             <span>Subtotal</span>
-                            <span class="font-semibold text-slate-800">₹{{ number_format($subtotal, 2) }}</span>
+                            <span class="font-semibold text-slate-800">₹{{ number_format(round($subtotal)) }}</span>
                         </div>
                         
                         @if($discount > 0)
                             <div class="flex justify-between text-red-600 font-medium">
                                 <span>Coupon Discount</span>
-                                <span>-₹{{ number_format($discount, 2) }}</span>
+                                <span>-₹{{ number_format(round($discount)) }}</span>
                             </div>
                         @endif
 
@@ -164,7 +166,7 @@
 
                         <div class="flex justify-between text-xs text-slate-400">
                             <span>GST Included</span>
-                            <span>₹{{ number_format($totalTax, 2) }}</span>
+                            <span>₹{{ number_format(round($totalTax)) }}</span>
                         </div>
                     </div>
 
@@ -178,7 +180,7 @@
 
                     <div class="border-t pt-4 flex justify-between items-baseline">
                         <span class="font-extrabold text-slate-900 text-sm">Grand Total</span>
-                        <span class="font-black text-slate-900 text-xl">₹{{ number_format($total, 2) }}</span>
+                        <span class="font-black text-slate-900 text-xl">₹{{ number_format(round($total)) }}</span>
                     </div>
 
                     <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold h-14 rounded-xl shadow-lg hover:shadow-teal-500/20 transition flex items-center justify-center gap-2">
@@ -190,6 +192,7 @@
         </form>
     </div>
 
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         (function () {
             const allowed = @json(config('delivery.pincodes', []));
@@ -197,18 +200,34 @@
             if (!form) return;
 
             form.addEventListener('submit', function (e) {
+                // 1. Validate PIN code for new address
                 const input = form.querySelector('input[name="new_address[postal_code]"]');
                 const errorEl = form.querySelector('[data-pincode-error]');
-                if (!input || !errorEl) return; // using a saved address — validated on the server
+                if (input && errorEl) {
+                    const code = (input.value || '').trim();
+                    if (code !== '') {
+                        const valid = allowed.includes(code);
+                        errorEl.classList.toggle('hidden', valid);
+                        input.classList.toggle('border-red-500', !valid);
+                        if (!valid) {
+                            errorEl.textContent = 'Sorry, we deliver only within Bangalore city. This PIN code is not serviceable.';
+                            e.preventDefault();
+                            return;
+                        }
+                    }
+                }
 
-                const code = (input.value || '').trim();
-                const valid = allowed.includes(code);
-                errorEl.classList.toggle('hidden', valid);
-                input.classList.toggle('border-red-500', !valid);
-                if (valid) return;
-
-                errorEl.textContent = 'Sorry, we deliver only within Bangalore city. This PIN code is not serviceable.';
-                e.preventDefault();
+                // 2. Razorpay Payment Gateway integration
+                const paymentMethod = form.querySelector('input[name="payment_method"]:checked').value;
+                if (paymentMethod === 'online' && !document.getElementById('razorpay_payment_id').value) {
+                    e.preventDefault();
+                    
+                    // Demo Mock Gateway
+                    alert('Razorpay Checkout Modal will open here.\n(Since this is a development environment without live keys, we are mocking a successful payment.)');
+                    
+                    document.getElementById('razorpay_payment_id').value = 'pay_' + Math.random().toString(36).substr(2, 9);
+                    form.submit();
+                }
             });
         })();
     </script>

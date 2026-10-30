@@ -81,7 +81,7 @@
                             </div>
                             <div>
                                 <span class="font-bold text-[#171615] block">Location</span>
-                                <span class="text-[#666]">Bangalore City, Karnataka, India</span>
+                                <span class="text-[#666]">{{ $siteSettings?->address ?? 'Bangalore City, Karnataka, India' }}</span>
                                 <span class="text-[11px] text-[#8c857b] block mt-0.5">
                                     Bengaluru & surrounding areas
                                     Direct dispatch from our authorised dealer & supplier network
@@ -99,8 +99,8 @@
                             </div>
                             <div>
                                 <span class="font-bold text-[#171615] block">Phone &amp; WhatsApp Concierge</span>
-                                <a href="tel:+916362346660"
-                                    class="hover:text-[#c09b5a] font-semibold transition text-sm">+91 95878 00660</a>
+                                <a href="tel:{{ $siteSettings?->phone ?? '+916362346660' }}"
+                                    class="hover:text-[#c09b5a] font-semibold transition text-sm">{{ $siteSettings?->phone ?? '+916362346660' }}</a>
                                 <span class="text-[11px] text-[#8c857b] block mt-0.5">Mon to Sat: 9:30 AM – 7:30
                                     PM</span>
                             </div>
@@ -117,8 +117,8 @@
                             </div>
                             <div>
                                 <span class="font-bold text-[#171615] block">Direct Email</span>
-                                <a href="mailto:pristoenterprises@gmail.com"
-                                    class="hover:text-[#c09b5a] transition">pristoenterprises@gmail.com</a>
+                                <a href="mailto:{{ $siteSettings?->email ?? 'pristoenterprises@gmail.com' }}"
+                                    class="hover:text-[#c09b5a] transition">{{ $siteSettings?->email ?? 'pristoenterprises@gmail.com' }}</a>
                                 <span class="text-[11px] text-[#8c857b] block mt-0.5">For official BOQs, CAD drawings,
                                     and trade inquiries</span>
                             </div>

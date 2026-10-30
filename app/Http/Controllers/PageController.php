@@ -49,4 +49,36 @@ class PageController extends Controller
     {
         return view('pages.terms');
     }
+
+    public function privacy()
+    {
+        return view('pages.privacy');
+    }
+
+    public function shipping()
+    {
+        return view('pages.shipping');
+    }
+
+    public function returns()
+    {
+        return view('pages.returns');
+    }
+
+    public function faqs()
+    {
+        return view('pages.faqs');
+    }
+
+    public function blog()
+    {
+        $blogs = \App\Models\Blog::where('is_published', true)->latest()->paginate(9);
+        return view('pages.blog', compact('blogs'));
+    }
+
+    public function blogShow($slug)
+    {
+        $blog = \App\Models\Blog::where('slug', $slug)->where('is_published', true)->firstOrFail();
+        return view('pages.blog-show', compact('blog'));
+    }
 }

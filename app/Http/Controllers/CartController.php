@@ -226,7 +226,8 @@ class CartController extends Controller
         $request->validate([
             'address_id' => 'required_without:new_address|nullable|exists:addresses,id',
             'new_address' => 'required_without:address_id|nullable|array',
-            'payment_method' => 'required|string|in:cod,card'
+            'payment_method' => 'required|string|in:cod,online',
+            'razorpay_payment_id' => 'nullable|string'
         ]);
 
         $cartItems = $this->getCartItems();

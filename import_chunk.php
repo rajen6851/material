@@ -187,7 +187,6 @@ foreach ($lines as $line) {
         [
             'name' => $name,
             'slug' => $slug,
-            'room_id' => $room->id,
             'category_id' => $cat->id,
             'brand_id' => $brand->id,
             'sub_category' => $subCategoryName,
@@ -203,6 +202,8 @@ foreach ($lines as $line) {
             'seo_meta_description' => $meta_desc,
         ]
     );
+    
+    $product->rooms()->sync([$room->id], false);
 
     $imagePath = 'images/products/' . $slug . '.jpeg';
     

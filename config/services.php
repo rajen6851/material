@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'ai' => [
+        'service_url' => env('AI_SERVICE_URL', 'http://127.0.0.1:8001'),
+        'secret_token' => env('AI_SERVICE_SECRET', 'pristo_ai_secure_token_2026'),
+    ],
+
 ];

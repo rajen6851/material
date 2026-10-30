@@ -20,6 +20,7 @@ class ProductAttribute extends Model
         'material'         => 'Material',
         'finish'           => 'Finish',
         'pattern_type'     => 'Pattern Type',
+         'color'        => 'Color',
         'edge_type'        => 'Edge Type',
         'application_area' => 'Application Area',
     ];
