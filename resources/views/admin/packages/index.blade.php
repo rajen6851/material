@@ -110,8 +110,19 @@
                                 <td class="py-4 px-4">
                                     @if($pkg->price)
                                         <span class="font-extrabold text-slate-900 text-sm">₹{{ number_format($pkg->price, 2) }}</span>
-                                        @if($pkg->mrp && $pkg->mrp > $pkg->price)
-                                            <span class="text-[11px] text-slate-400 line-through block">₹{{ number_format($pkg->mrp, 2) }}</span>
+                                        @php
+                                            $dispMrp = $pkg->effective_mrp;
+                                            $dispDisc = $pkg->discount_percent;
+                                        @endphp
+                                        @if($dispMrp && $dispMrp > $pkg->price)
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="text-[11px] text-slate-400 line-through">₹{{ number_format($dispMrp, 2) }}</span>
+                                                @if($dispDisc > 0)
+                                                    <span class="text-[10px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.2 rounded">
+                                                        {{ $dispDisc }}% OFF
+                                                    </span>
+                                                @endif
+                                            </div>
                                         @endif
                                     @else
                                         <span class="text-slate-400 italic">Custom Quote</span>

@@ -76,6 +76,7 @@ class PackageController extends Controller implements HasMiddleware
             'description' => 'nullable|string',
             'price' => 'nullable|numeric|min:0',
             'mrp' => 'nullable|numeric|min:0',
+            'discount_percent' => 'nullable|numeric|min:0|max:100',
             'sort_order' => 'nullable|integer',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:4096',
         ]);
@@ -99,14 +100,23 @@ class PackageController extends Controller implements HasMiddleware
             $slug = $originalSlug . '-' . $counter++;
         }
 
+        $mrp = $request->filled('mrp') ? (float) $request->mrp : null;
+        $price = $request->filled('price') ? (float) $request->price : null;
+        if ($request->filled('discount_percent') && is_numeric($request->discount_percent) && $mrp > 0) {
+            $disc = (float) $request->discount_percent;
+            if ($disc > 0 && ($price === null || $price <= 0 || $price >= $mrp)) {
+                $price = round($mrp - ($mrp * ($disc / 100)), 2);
+            }
+        }
+
         $package = Package::create([
             'name' => $request->name,
             'slug' => $slug,
             'brand_id' => $request->brand_id,
             'tagline' => $request->tagline,
             'description' => $request->description,
-            'price' => $request->price,
-            'mrp' => $request->mrp,
+            'price' => $price,
+            'mrp' => $mrp > 0 ? $mrp : null,
             'image' => $imagePath,
             'is_active' => $request->has('is_active'),
             'sort_order' => $request->sort_order ?? 0,
@@ -152,6 +162,7 @@ class PackageController extends Controller implements HasMiddleware
             'description' => 'nullable|string',
             'price' => 'nullable|numeric|min:0',
             'mrp' => 'nullable|numeric|min:0',
+            'discount_percent' => 'nullable|numeric|min:0|max:100',
             'sort_order' => 'nullable|integer',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:4096',
         ]);
@@ -173,13 +184,27 @@ class PackageController extends Controller implements HasMiddleware
             $imagePath = 'images/packages/' . $imageName;
         }
 
+        $mrp = $request->mrp;
+        // If MRP is empty or 0, auto-fill from total products value in this package
+        if (empty($mrp) || $mrp <= 0) {
+            $mrp = $package->calculated_mrp ?: $package->calculated_total;
+        }
+
+        $price = $request->price;
+        // If discount percent was submitted and price needs calculation
+        if ($request->filled('discount_percent') && $request->discount_percent > 0 && $mrp > 0) {
+            if (empty($price) || $price >= $mrp) {
+                $price = round($mrp - ($mrp * ($request->discount_percent / 100)));
+            }
+        }
+
         $package->update([
             'name' => $request->name,
             'brand_id' => $request->brand_id,
             'tagline' => $request->tagline,
             'description' => $request->description,
-            'price' => $request->price,
-            'mrp' => $request->mrp,
+            'price' => $price,
+            'mrp' => $mrp,
             'image' => $imagePath,
             'is_active' => $request->has('is_active'),
             'sort_order' => $request->sort_order ?? 0,

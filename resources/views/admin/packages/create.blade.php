@@ -53,27 +53,63 @@
                 </div>
 
                 <!-- Tagline / Subtitle -->
-                <div>
+                <div class="md:col-span-2">
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                         Tagline / Subtitle
                     </label>
                     <input type="text" name="tagline" value="{{ old('tagline') }}" placeholder="e.g. Complete Sanitaryware &amp; CP Fittings Suite" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
                 </div>
 
-                <!-- Package Offer Price -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                        Special Package Price (₹) <span class="text-slate-400 font-normal">(Optional)</span>
-                    </label>
-                    <input type="number" step="0.01" name="price" value="{{ old('price') }}" placeholder="e.g. 18500" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
-                </div>
+                <!-- Package Pricing & Discount Calculation -->
+                <div class="md:col-span-2 bg-gradient-to-br from-slate-50 via-teal-50/30 to-white border-2 border-teal-500/30 rounded-3xl p-6 sm:p-7 space-y-4 shadow-sm">
+                    <div class="flex items-center gap-2 border-b border-teal-100 pb-2">
+                        <span class="text-xl">💰</span>
+                        <span class="text-xs font-black text-slate-900 uppercase tracking-wide">Pricing &amp; Discount Calculator</span>
+                    </div>
 
-                <!-- MRP -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                        Original MRP (₹) <span class="text-slate-400 font-normal">(Optional)</span>
-                    </label>
-                    <input type="number" step="0.01" name="mrp" value="{{ old('mrp') }}" placeholder="e.g. 24000" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <!-- Original MRP -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                Original MRP (₹) <span class="text-slate-400 font-normal">(Optional)</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 font-bold text-sm">₹</span>
+                                <input type="number" step="0.01" name="mrp" id="create_package_mrp" value="{{ old('mrp') }}" placeholder="e.g. 24000" class="w-full pl-8 border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3 font-semibold text-slate-900 bg-white">
+                            </div>
+                        </div>
+
+                        <!-- Discount % -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                Package Discount (% OFF)
+                            </label>
+                            <div class="relative">
+                                <input type="number" step="any" min="0" max="100" name="discount_percent" id="create_package_discount" value="{{ old('discount_percent') }}" placeholder="e.g. 20" class="w-full pr-8 border-slate-300 focus:border-emerald-500 focus:ring-0 rounded-xl text-sm p-3 font-black text-emerald-700 bg-white">
+                                <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 font-bold text-sm">%</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                @foreach([10, 15, 20, 25, 30, 40, 50] as $qDisc)
+                                    <button type="button" onclick="setCreateQuickDiscount({{ $qDisc }})" class="text-[10px] font-black px-2 py-0.5 rounded-lg border border-slate-200 bg-white hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer">
+                                        {{ $qDisc }}%
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Special Package Price -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                Special Package Price (₹)
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 font-bold text-sm">₹</span>
+                                <input type="number" step="0.01" name="price" id="create_package_price" value="{{ old('price') }}" placeholder="e.g. 18500" class="w-full pl-8 border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-base p-3 font-black text-teal-700 bg-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="create_pricing_summary"></div>
                 </div>
 
                 <!-- Cover Image -->
@@ -119,5 +155,75 @@
             </div>
         </form>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const mrpInput = document.getElementById('create_package_mrp');
+        const discInput = document.getElementById('create_package_discount');
+        const priceInput = document.getElementById('create_package_price');
+        const summaryEl = document.getElementById('create_pricing_summary');
+
+        window.setCreateQuickDiscount = function (percent) {
+            if (discInput) {
+                discInput.value = percent;
+                recalcFromDiscount();
+            }
+        };
+
+        function updateSummary() {
+            if (!summaryEl) return;
+            const mrp = parseFloat(mrpInput ? mrpInput.value : 0) || 0;
+            const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
+
+            if (mrp > 0 && price > 0 && mrp > price) {
+                const savings = mrp - price;
+                const pct = Math.round((savings / mrp) * 100);
+                summaryEl.innerHTML = `
+                    <div class="flex flex-wrap items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-2.5 rounded-xl text-xs font-bold">
+                        <span class="bg-emerald-600 text-white px-2 py-0.5 rounded-md text-[11px] font-black">🔥 ${pct}% DISCOUNT</span>
+                        <span>Customer Saves: <strong>₹${savings.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></span>
+                    </div>
+                `;
+            } else {
+                summaryEl.innerHTML = '';
+            }
+        }
+
+        function recalcFromDiscount() {
+            const mrp = parseFloat(mrpInput ? mrpInput.value : 0) || 0;
+            const disc = parseFloat(discInput ? discInput.value : 0);
+            if (!isNaN(disc) && mrp > 0 && priceInput) {
+                const clamped = Math.max(0, Math.min(100, disc));
+                priceInput.value = Math.round(mrp - (mrp * (clamped / 100)));
+            }
+            updateSummary();
+        }
+
+        function recalcFromPrice() {
+            const mrp = parseFloat(mrpInput ? mrpInput.value : 0) || 0;
+            const price = parseFloat(priceInput ? priceInput.value : 0);
+            if (mrp > 0 && !isNaN(price) && discInput) {
+                if (price > 0 && mrp > price) {
+                    discInput.value = Math.round(((mrp - price) / mrp) * 100);
+                } else if (price >= mrp) {
+                    discInput.value = 0;
+                }
+            }
+            updateSummary();
+        }
+
+        if (discInput) discInput.addEventListener('input', recalcFromDiscount);
+        if (priceInput) priceInput.addEventListener('input', recalcFromPrice);
+        if (mrpInput) mrpInput.addEventListener('input', function () {
+            if (discInput && discInput.value) {
+                recalcFromDiscount();
+            } else {
+                recalcFromPrice();
+            }
+        });
+
+        updateSummary();
+    });
+    </script>
 </x-admin-layout>
 

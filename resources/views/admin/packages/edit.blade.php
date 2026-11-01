@@ -387,56 +387,147 @@
                 </div>
 
                 @php
-                    $calcTotal = $package->calculated_total;
-                    $refMrp = $package->mrp ?: $calcTotal;
-                    $calcDisc = ($refMrp && $package->price && $refMrp > $package->price) ? round((($refMrp - $package->price) / $refMrp) * 100) : 0;
-                    $calcSavings = ($refMrp && $package->price && $refMrp > $package->price) ? ($refMrp - $package->price) : 0;
+                    $calcTotal = (float) $package->calculated_total;
+                    $calcMrp = (float) ($package->calculated_mrp ?: $calcTotal);
+                    $definedMrp = (float) ($package->mrp ?: $calcMrp);
+                    $currentPrice = (float) ($package->price ?: 0);
+                    $calcDisc = ($definedMrp > 0 && $currentPrice > 0 && $definedMrp > $currentPrice) 
+                                ? round((($definedMrp - $currentPrice) / $definedMrp) * 100) 
+                                : 0;
+                    $calcSavings = ($definedMrp > 0 && $currentPrice > 0 && $definedMrp > $currentPrice) 
+                                ? ($definedMrp - $currentPrice) 
+                                : 0;
                 @endphp
 
-                @if($calcTotal > 0 || $package->mrp > 0)
-                    <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
-                        <div class="flex items-center gap-3">
+                <!-- Pricing & Real-time Discount Calculator Card -->
+                <div class="bg-gradient-to-br from-slate-50 via-teal-50/30 to-white border-2 border-teal-500/30 rounded-3xl p-6 sm:p-7 space-y-5 shadow-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-teal-100 pb-3">
+                        <div class="flex items-center gap-2.5">
                             <span class="text-2xl">🏷️</span>
                             <div>
-                                <span class="text-xs font-black text-emerald-950 uppercase tracking-wide block">Package Discount Calculation:</span>
-                                <p class="text-xs text-emerald-800">
-                                    Total Items Value: <strong>₹{{ number_format($calcTotal, 2) }}</strong>
-                                    @if($package->mrp && $package->mrp != $calcTotal)
-                                        | Defined MRP: <strong>₹{{ number_format($package->mrp, 2) }}</strong>
-                                    @endif
-                                    | Package Price: <strong>₹{{ number_format($package->price, 2) }}</strong>
-                                </p>
+                                <span class="text-xs font-black text-slate-900 uppercase tracking-wider block">Package Pricing &amp; Discount Calculator</span>
+                                <span class="text-[11px] text-slate-500">Auto-calculate special package price from discount % or auto-fill MRP from products</span>
                             </div>
                         </div>
 
                         <div class="flex items-center gap-2">
-                            @if($calcDisc > 0)
-                                <span class="bg-emerald-600 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs">
-                                    🔥 {{ $calcDisc }}% DISCOUNT
-                                </span>
-                                <span class="text-xs font-bold text-emerald-900 bg-white border border-emerald-200 px-3 py-1.5 rounded-xl">
-                                    Customer Saves ₹{{ number_format($calcSavings) }}
-                                </span>
-                            @else
-                                <span class="text-xs text-slate-500 italic bg-white px-3 py-1.5 rounded-xl border border-slate-200">
-                                    Set Package Price lower than MRP or Items total to show discount %
-                                </span>
-                            @endif
+                            <span class="text-xs font-bold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                                Products Catalog Total: <strong class="text-teal-700">₹{{ number_format($calcMrp ?: $calcTotal, 2) }}</strong>
+                            </span>
                         </div>
                     </div>
-                @endif
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Special Package Price (₹)</label>
-                        <input type="number" step="0.01" name="price" value="{{ old('price', $package->price) }}" placeholder="e.g. 18990" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3 font-bold text-teal-600">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- 1. Original MRP (₹) -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label for="package_mrp" class="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                    Original MRP (₹) <span class="text-rose-500">*</span>
+                                </label>
+                                <button type="button" 
+                                        onclick="autoFillMrpFromProducts()" 
+                                        title="Auto-fill MRP from sum of all products in this package" 
+                                        class="text-[10px] font-extrabold text-teal-700 hover:text-white bg-teal-100 hover:bg-teal-600 px-2.5 py-1 rounded-lg transition inline-flex items-center gap-1 cursor-pointer shadow-2xs">
+                                    <span>⚡ Auto-Fill MRP</span>
+                                </button>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 font-bold text-sm">₹</span>
+                                <input type="number" 
+                                       step="0.01" 
+                                       name="mrp" 
+                                       id="package_mrp" 
+                                       value="{{ old('mrp', $package->mrp ?: ($calcMrp ?: $calcTotal)) }}" 
+                                       placeholder="e.g. 20594" 
+                                       class="w-full pl-8 border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3 font-semibold text-slate-900 bg-white shadow-2xs">
+                            </div>
+                            <p class="text-[11px] text-slate-500 flex items-center justify-between">
+                                <span>Sum of products in package:</span>
+                                <strong class="text-slate-700">₹{{ number_format($calcMrp ?: $calcTotal, 2) }}</strong>
+                            </p>
+                        </div>
+
+                        <!-- 2. Package Discount (% OFF) -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label for="package_discount" class="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                    Package Discount (% OFF)
+                                </label>
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                    Auto-calculates Price
+                                </span>
+                            </div>
+                            <div class="relative">
+                                <input type="number" 
+                                       step="any" 
+                                       min="0" 
+                                       max="100" 
+                                       name="discount_percent" 
+                                       id="package_discount" 
+                                       value="{{ old('discount_percent', $calcDisc > 0 ? $calcDisc : '') }}" 
+                                       placeholder="e.g. 20" 
+                                       class="w-full pr-8 border-slate-300 focus:border-emerald-500 focus:ring-0 rounded-xl text-sm p-3 font-black text-emerald-700 bg-white shadow-2xs">
+                                <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 font-black text-sm">%</span>
+                            </div>
+                            <!-- Quick Discount Buttons -->
+                            <div class="flex flex-wrap items-center gap-1 pt-0.5">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase mr-1">Quick:</span>
+                                @foreach([10, 15, 20, 25, 30, 35, 40, 50] as $qDisc)
+                                    <button type="button" 
+                                            onclick="applyQuickDiscount({{ $qDisc }})"
+                                            class="text-[10px] font-black px-2 py-0.5 rounded-lg border transition cursor-pointer {{ ($calcDisc == $qDisc) ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300' }}">
+                                        {{ $qDisc }}%
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- 3. Special Package Price (₹) -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label for="package_price" class="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                    Special Package Price (₹) <span class="text-rose-500">*</span>
+                                </label>
+                                <span class="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
+                                    Customer Pays
+                                </span>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 font-bold text-sm">₹</span>
+                                <input type="number" 
+                                       step="0.01" 
+                                       name="price" 
+                                       id="package_price" 
+                                       value="{{ old('price', $package->price) }}" 
+                                       placeholder="e.g. 16475" 
+                                       class="w-full pl-8 border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-base p-3 font-black text-teal-700 bg-white shadow-2xs">
+                            </div>
+                            <p class="text-[11px] text-slate-500">
+                                Enter % discount above or enter price directly.
+                            </p>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Original MRP (₹)</label>
-                        <input type="number" step="0.01" name="mrp" value="{{ old('mrp', $package->mrp) }}" placeholder="e.g. 24500" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
+                    <!-- Real-time Live Summary Bar -->
+                    <div id="pricing_live_summary" class="pt-1">
+                        @if($calcDisc > 0)
+                            <div class="flex flex-wrap items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-2.5 rounded-xl text-xs font-bold">
+                                <span class="bg-emerald-600 text-white px-2.5 py-0.5 rounded-md text-[11px] font-black tracking-wide">🔥 {{ $calcDisc }}% DISCOUNT</span>
+                                <span>Special Price: <strong class="text-emerald-800 font-extrabold text-sm">₹{{ number_format($package->price, 2) }}</strong></span>
+                                <span class="text-slate-300">|</span>
+                                <span class="line-through text-slate-500 font-medium">MRP ₹{{ number_format($definedMrp, 2) }}</span>
+                                <span class="text-slate-300">|</span>
+                                <span class="text-emerald-700">Customer Saves <strong>₹{{ number_format($calcSavings, 2) }}</strong></span>
+                            </div>
+                        @else
+                            <div class="text-xs text-slate-500 italic bg-white/80 border border-slate-200 px-4 py-2 rounded-xl">
+                                Enter a % discount above to auto-calculate the Special Package Price.
+                            </div>
+                        @endif
                     </div>
+                </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Display Sort Order</label>
                         <input type="number" name="sort_order" value="{{ old('sort_order', $package->sort_order) }}" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
@@ -789,4 +880,116 @@
         </div>
 
     </div>
+
+    <!-- Script for Real-time Package Discount & MRP Auto-fill Calculation -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const productsDefaultTotal = {{ (float) ($calcMrp ?: $calcTotal ?: 0) }};
+        const mrpInput = document.getElementById('package_mrp');
+        const discInput = document.getElementById('package_discount');
+        const priceInput = document.getElementById('package_price');
+        const summaryEl = document.getElementById('pricing_live_summary');
+
+        function updateSummary() {
+            if (!summaryEl) return;
+            const mrp = parseFloat(mrpInput ? mrpInput.value : 0) || 0;
+            const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
+
+            if (mrp > 0 && price > 0 && mrp > price) {
+                const savings = mrp - price;
+                const pct = Math.round((savings / mrp) * 100);
+                summaryEl.innerHTML = `
+                    <div class="flex flex-wrap items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-2.5 rounded-xl text-xs font-bold">
+                        <span class="bg-emerald-600 text-white px-2.5 py-0.5 rounded-md text-[11px] font-black tracking-wide">🔥 ${pct}% DISCOUNT</span>
+                        <span>Special Price: <strong class="text-emerald-800 font-extrabold text-sm">₹${price.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>
+                        <span class="text-slate-300">|</span>
+                        <span class="line-through text-slate-500 font-medium">MRP ₹${mrp.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        <span class="text-slate-300">|</span>
+                        <span class="text-emerald-700">Customer Saves <strong>₹${savings.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>
+                    </div>
+                `;
+            } else if (mrp > 0 && price > 0 && price === mrp) {
+                summaryEl.innerHTML = `
+                    <div class="text-xs text-slate-600 font-medium bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl">
+                        Selling at regular MRP (No discount applied). Enter a % above or lower price to add a combo discount.
+                    </div>
+                `;
+            } else if (mrp > 0 && price > 0 && price > mrp) {
+                summaryEl.innerHTML = `
+                    <div class="text-xs text-amber-800 font-semibold bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl">
+                        ⚠️ Note: Package Price (₹${price.toLocaleString('en-IN')}) is higher than Original MRP (₹${mrp.toLocaleString('en-IN')}).
+                    </div>
+                `;
+            } else {
+                summaryEl.innerHTML = `
+                    <div class="text-xs text-slate-500 italic bg-white/70 border border-slate-200 px-4 py-2 rounded-xl">
+                        Enter % discount or Special Package Price above to calculate combo savings.
+                    </div>
+                `;
+            }
+        }
+
+        window.autoFillMrpFromProducts = function () {
+            if (productsDefaultTotal > 0 && mrpInput) {
+                mrpInput.value = productsDefaultTotal.toFixed(2);
+                onMrpChange();
+            }
+        };
+
+        window.applyQuickDiscount = function (percent) {
+            if (discInput) {
+                discInput.value = percent;
+                onDiscountChange();
+            }
+        };
+
+        function onDiscountChange() {
+            let mrp = parseFloat(mrpInput ? mrpInput.value : 0) || 0;
+            if (mrp <= 0 && productsDefaultTotal > 0) {
+                mrp = productsDefaultTotal;
+                if (mrpInput) mrpInput.value = mrp.toFixed(2);
+            }
+            const disc = parseFloat(discInput ? discInput.value : 0);
+            if (!isNaN(disc) && mrp > 0 && priceInput) {
+                const clamped = Math.max(0, Math.min(100, disc));
+                const calculatedPrice = Math.round(mrp - (mrp * (clamped / 100)));
+                priceInput.value = calculatedPrice;
+            }
+            updateSummary();
+        }
+
+        function onPriceChange() {
+            const mrp = parseFloat(mrpInput ? mrpInput.value : 0) || 0;
+            const price = parseFloat(priceInput ? priceInput.value : 0);
+            if (mrp > 0 && !isNaN(price) && discInput) {
+                if (price > 0 && mrp > price) {
+                    const disc = Math.round(((mrp - price) / mrp) * 100);
+                    discInput.value = disc;
+                } else if (price >= mrp) {
+                    discInput.value = 0;
+                }
+            }
+            updateSummary();
+        }
+
+        function onMrpChange() {
+            const disc = parseFloat(discInput ? discInput.value : 0);
+            if (!isNaN(disc) && disc > 0) {
+                onDiscountChange();
+            } else {
+                onPriceChange();
+            }
+        }
+
+        if (discInput) discInput.addEventListener('input', onDiscountChange);
+        if (priceInput) priceInput.addEventListener('input', onPriceChange);
+        if (mrpInput) mrpInput.addEventListener('input', onMrpChange);
+
+        // Initial run on page load: if MRP input is empty or 0, auto-fill it from products
+        if (mrpInput && (!mrpInput.value || parseFloat(mrpInput.value) <= 0) && productsDefaultTotal > 0) {
+            mrpInput.value = productsDefaultTotal.toFixed(2);
+        }
+        updateSummary();
+    });
+    </script>
 </x-admin-layout>
