@@ -162,7 +162,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                                 
                                 <!-- 1. Basin Area -->
-                                <div class="bg-[#faf8f5] rounded-2xl p-5 border border-[#eee9e0] space-y-3">
+                                <div class="bg-[#faf8f5] rounded-2xl p-5 border border-[#eee9e0] space-y-3 overflow-hidden">
                                     <div class="flex items-center justify-between border-b border-sky-100 pb-2.5">
                                         <h4 class="font-bold text-sm text-[#171615] flex items-center gap-1.5">
                                             <span class="text-sky-600">💧</span>
@@ -175,7 +175,7 @@
 
                                     <div class="space-y-3">
                                         @forelse($basinItems as $item)
-                                            <div class="bg-white rounded-xl p-3 border border-[#e8e4dc] flex items-center gap-3">
+                                            <div class="bg-white rounded-xl p-3 border border-[#e8e4dc] flex items-start gap-3 overflow-hidden">
                                                 <div class="w-12 h-12 rounded-lg bg-[#faf8f5] p-1 flex-shrink-0 flex items-center justify-center overflow-hidden border border-[#eee9e0]">
                                                     @if($item->display_image)
                                                         <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
@@ -183,13 +183,13 @@
                                                         <span class="text-lg text-slate-300">💧</span>
                                                     @endif
                                                 </div>
-                                                <div class="flex-grow min-w-0">
+                                                <div class="flex-grow min-w-0 overflow-hidden">
                                                     @if($item->cat_no)
-                                                        <span class="text-[9px] font-mono font-bold text-[#8c8275] bg-[#faf8f5] px-1 py-0.5 rounded border border-[#eee9e0]">Cat: {{ $item->cat_no }}</span>
+                                                        <span class="text-[9px] font-mono font-bold text-[#8c8275] bg-[#faf8f5] px-1 py-0.5 rounded border border-[#eee9e0] inline-block mb-0.5">Cat: {{ $item->cat_no }}</span>
                                                     @endif
-                                                    <h5 class="text-xs font-bold text-[#171615] truncate mt-0.5">{{ $item->name }}</h5>
+                                                    <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words mt-0.5" title="{{ $item->name }}">{{ $item->name }}</h5>
                                                     @if($item->price)
-                                                        <span class="text-[11px] font-extrabold text-[#171615] block mt-0.5">₹{{ number_format($item->price) }}</span>
+                                                        <span class="text-[11px] font-extrabold text-[#171615] block mt-1">₹{{ number_format($item->price) }}</span>
                                                     @endif
                                                 </div>
                                             </div>
@@ -200,7 +200,7 @@
                                 </div>
 
                                 <!-- 2. WC Area -->
-                                <div class="bg-[#faf8f5] rounded-2xl p-5 border border-[#eee9e0] space-y-3">
+                                <div class="bg-[#faf8f5] rounded-2xl p-5 border border-[#eee9e0] space-y-3 overflow-hidden">
                                     <div class="flex items-center justify-between border-b border-purple-100 pb-2.5">
                                         <h4 class="font-bold text-sm text-[#171615] flex items-center gap-1.5">
                                             <span class="text-purple-600">🚽</span>
@@ -213,7 +213,7 @@
 
                                     <div class="space-y-3">
                                         @forelse($wcItems as $item)
-                                            <div class="bg-white rounded-xl p-3 border border-[#e8e4dc] flex items-center gap-3">
+                                            <div class="bg-white rounded-xl p-3 border border-[#e8e4dc] flex items-start gap-3 overflow-hidden">
                                                 <div class="w-12 h-12 rounded-lg bg-[#faf8f5] p-1 flex-shrink-0 flex items-center justify-center overflow-hidden border border-[#eee9e0]">
                                                     @if($item->display_image)
                                                         <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
@@ -221,13 +221,13 @@
                                                         <span class="text-lg text-slate-300">🚽</span>
                                                     @endif
                                                 </div>
-                                                <div class="flex-grow min-w-0">
+                                                <div class="flex-grow min-w-0 overflow-hidden">
                                                     @if($item->cat_no)
-                                                        <span class="text-[9px] font-mono font-bold text-[#8c8275] bg-[#faf8f5] px-1 py-0.5 rounded border border-[#eee9e0]">Cat: {{ $item->cat_no }}</span>
+                                                        <span class="text-[9px] font-mono font-bold text-[#8c8275] bg-[#faf8f5] px-1 py-0.5 rounded border border-[#eee9e0] inline-block mb-0.5">Cat: {{ $item->cat_no }}</span>
                                                     @endif
-                                                    <h5 class="text-xs font-bold text-[#171615] truncate mt-0.5">{{ $item->name }}</h5>
+                                                    <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words mt-0.5" title="{{ $item->name }}">{{ $item->name }}</h5>
                                                     @if($item->price)
-                                                        <span class="text-[11px] font-extrabold text-[#171615] block mt-0.5">₹{{ number_format($item->price) }}</span>
+                                                        <span class="text-[11px] font-extrabold text-[#171615] block mt-1">₹{{ number_format($item->price) }}</span>
                                                     @endif
                                                 </div>
                                             </div>
@@ -238,7 +238,7 @@
                                 </div>
 
                                 <!-- 3. Shower Area -->
-                                <div class="bg-[#faf8f5] rounded-2xl p-5 border border-[#eee9e0] space-y-3">
+                                <div class="bg-[#faf8f5] rounded-2xl p-5 border border-[#eee9e0] space-y-3 overflow-hidden">
                                     <div class="flex items-center justify-between border-b border-amber-100 pb-2.5">
                                         <h4 class="font-bold text-sm text-[#171615] flex items-center gap-1.5">
                                             <span class="text-amber-600">🚿</span>
@@ -251,7 +251,7 @@
 
                                     <div class="space-y-3">
                                         @forelse($showerItems as $item)
-                                            <div class="bg-white rounded-xl p-3 border border-[#e8e4dc] flex items-center gap-3">
+                                            <div class="bg-white rounded-xl p-3 border border-[#e8e4dc] flex items-start gap-3 overflow-hidden">
                                                 <div class="w-12 h-12 rounded-lg bg-[#faf8f5] p-1 flex-shrink-0 flex items-center justify-center overflow-hidden border border-[#eee9e0]">
                                                     @if($item->display_image)
                                                         <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
@@ -259,13 +259,13 @@
                                                         <span class="text-lg text-slate-300">🚿</span>
                                                     @endif
                                                 </div>
-                                                <div class="flex-grow min-w-0">
+                                                <div class="flex-grow min-w-0 overflow-hidden">
                                                     @if($item->cat_no)
-                                                        <span class="text-[9px] font-mono font-bold text-[#8c8275] bg-[#faf8f5] px-1 py-0.5 rounded border border-[#eee9e0]">Cat: {{ $item->cat_no }}</span>
+                                                        <span class="text-[9px] font-mono font-bold text-[#8c8275] bg-[#faf8f5] px-1 py-0.5 rounded border border-[#eee9e0] inline-block mb-0.5">Cat: {{ $item->cat_no }}</span>
                                                     @endif
-                                                    <h5 class="text-xs font-bold text-[#171615] truncate mt-0.5">{{ $item->name }}</h5>
+                                                    <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words mt-0.5" title="{{ $item->name }}">{{ $item->name }}</h5>
                                                     @if($item->price)
-                                                        <span class="text-[11px] font-extrabold text-[#171615] block mt-0.5">₹{{ number_format($item->price) }}</span>
+                                                        <span class="text-[11px] font-extrabold text-[#171615] block mt-1">₹{{ number_format($item->price) }}</span>
                                                     @endif
                                                 </div>
                                             </div>

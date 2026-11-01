@@ -90,7 +90,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                         
                         <!-- 1. BASIN AREA COLUMN -->
-                        <div class="bg-white rounded-3xl border border-[#e8e4dc] p-6 shadow-xs space-y-4">
+                        <div class="bg-white rounded-3xl border border-[#e8e4dc] p-6 shadow-xs space-y-4 overflow-hidden">
                             <div class="flex items-center justify-between border-b border-sky-100 pb-3">
                                 <h4 class="font-bold text-base text-[#171615] flex items-center gap-2">
                                     <span class="text-sky-600">💧</span>
@@ -103,7 +103,7 @@
 
                             <div class="space-y-3.5">
                                 @forelse($basinItems as $item)
-                                    <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-sky-300 rounded-2xl p-3.5 transition group flex gap-3.5 items-center">
+                                    <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-sky-300 rounded-2xl p-3.5 transition group flex gap-3.5 items-start overflow-hidden">
                                         <div class="w-16 h-16 bg-white border border-[#e8e4dc] rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
                                             @if($item->display_image)
                                                 <img src="{{ $item->display_image }}" class="w-full h-full object-contain group-hover:scale-105 transition">
@@ -111,13 +111,13 @@
                                                 <span class="text-2xl text-slate-300">💧</span>
                                             @endif
                                         </div>
-                                        <div class="flex-grow min-w-0">
+                                        <div class="flex-grow min-w-0 overflow-hidden">
                                             @if($item->cat_no)
                                                 <span class="text-[10px] font-mono font-bold text-[#8c8275] bg-white border border-[#e8e4dc] px-1.5 py-0.5 rounded inline-block mb-0.5">
                                                     Cat: {{ $item->cat_no }}
                                                 </span>
                                             @endif
-                                            <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2">{{ $item->name }}</h5>
+                                            <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words" title="{{ $item->name }}">{{ $item->name }}</h5>
                                             @if($item->description)
                                                 <p class="text-[11px] text-[#736c64] line-clamp-1 mt-0.5">{{ $item->description }}</p>
                                             @endif
@@ -133,7 +133,7 @@
                         </div>
 
                         <!-- 2. WC AREA COLUMN -->
-                        <div class="bg-white rounded-3xl border border-[#e8e4dc] p-6 shadow-xs space-y-4">
+                        <div class="bg-white rounded-3xl border border-[#e8e4dc] p-6 shadow-xs space-y-4 overflow-hidden">
                             <div class="flex items-center justify-between border-b border-purple-100 pb-3">
                                 <h4 class="font-bold text-base text-[#171615] flex items-center gap-2">
                                     <span class="text-purple-600">🚽</span>
@@ -146,7 +146,7 @@
 
                             <div class="space-y-3.5">
                                 @forelse($wcItems as $item)
-                                    <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-purple-300 rounded-2xl p-3.5 transition group flex gap-3.5 items-center">
+                                    <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-purple-300 rounded-2xl p-3.5 transition group flex gap-3.5 items-start overflow-hidden">
                                         <div class="w-16 h-16 bg-white border border-[#e8e4dc] rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
                                             @if($item->display_image)
                                                 <img src="{{ $item->display_image }}" class="w-full h-full object-contain group-hover:scale-105 transition">
@@ -154,13 +154,13 @@
                                                 <span class="text-2xl text-slate-300">🚽</span>
                                             @endif
                                         </div>
-                                        <div class="flex-grow min-w-0">
+                                        <div class="flex-grow min-w-0 overflow-hidden">
                                             @if($item->cat_no)
                                                 <span class="text-[10px] font-mono font-bold text-[#8c8275] bg-white border border-[#e8e4dc] px-1.5 py-0.5 rounded inline-block mb-0.5">
                                                     Cat: {{ $item->cat_no }}
                                                 </span>
                                             @endif
-                                            <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2">{{ $item->name }}</h5>
+                                            <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words" title="{{ $item->name }}">{{ $item->name }}</h5>
                                             @if($item->description)
                                                 <p class="text-[11px] text-[#736c64] line-clamp-1 mt-0.5">{{ $item->description }}</p>
                                             @endif
@@ -176,7 +176,7 @@
                         </div>
 
                         <!-- 3. SHOWER AREA COLUMN -->
-                        <div class="bg-white rounded-3xl border border-[#e8e4dc] p-6 shadow-xs space-y-4">
+                        <div class="bg-white rounded-3xl border border-[#e8e4dc] p-6 shadow-xs space-y-4 overflow-hidden">
                             <div class="flex items-center justify-between border-b border-amber-100 pb-3">
                                 <h4 class="font-bold text-base text-[#171615] flex items-center gap-2">
                                     <span class="text-amber-600">🚿</span>
@@ -189,7 +189,7 @@
 
                             <div class="space-y-3.5">
                                 @forelse($showerItems as $item)
-                                    <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-amber-300 rounded-2xl p-3.5 transition group flex gap-3.5 items-center">
+                                    <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-amber-300 rounded-2xl p-3.5 transition group flex gap-3.5 items-start overflow-hidden">
                                         <div class="w-16 h-16 bg-white border border-[#e8e4dc] rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
                                             @if($item->display_image)
                                                 <img src="{{ $item->display_image }}" class="w-full h-full object-contain group-hover:scale-105 transition">
@@ -197,13 +197,13 @@
                                                 <span class="text-2xl text-slate-300">🚿</span>
                                             @endif
                                         </div>
-                                        <div class="flex-grow min-w-0">
+                                        <div class="flex-grow min-w-0 overflow-hidden">
                                             @if($item->cat_no)
                                                 <span class="text-[10px] font-mono font-bold text-[#8c8275] bg-white border border-[#e8e4dc] px-1.5 py-0.5 rounded inline-block mb-0.5">
                                                     Cat: {{ $item->cat_no }}
                                                 </span>
                                             @endif
-                                            <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2">{{ $item->name }}</h5>
+                                            <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words" title="{{ $item->name }}">{{ $item->name }}</h5>
                                             @if($item->description)
                                                 <p class="text-[11px] text-[#736c64] line-clamp-1 mt-0.5">{{ $item->description }}</p>
                                             @endif
