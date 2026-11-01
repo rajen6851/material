@@ -48,15 +48,31 @@
                 </div>
 
                 <div class="flex items-center gap-4 flex-wrap">
+                    @php
+                        $mrpVal = ($package->mrp && $package->mrp > $package->price) ? $package->mrp : ($package->calculated_total > $package->price ? $package->calculated_total : null);
+                        $discPercent = ($mrpVal && $package->price && $mrpVal > $package->price) ? round((($mrpVal - $package->price) / $mrpVal) * 100) : 0;
+                        $saveAmount = ($mrpVal && $package->price && $mrpVal > $package->price) ? ($mrpVal - $package->price) : 0;
+                    @endphp
+
                     @if($package->price)
-                        <div class="text-right">
-                            <span class="text-xs text-[#a39e97] block">Complete Package Price</span>
-                            <div class="flex items-baseline gap-2">
+                        <div class="text-left md:text-right">
+                            <span class="text-xs text-[#a39e97] block">Complete Package Combo Price</span>
+                            <div class="flex items-baseline gap-2 flex-wrap">
                                 <span class="text-2xl sm:text-3xl font-black text-[#c09b5a]">₹{{ number_format($package->price) }}</span>
-                                @if($package->mrp && $package->mrp > $package->price)
-                                    <span class="text-xs text-[#736c64] line-through">MRP ₹{{ number_format($package->mrp) }}</span>
+                                @if($mrpVal)
+                                    <span class="text-sm text-[#a39e97] line-through">MRP ₹{{ number_format($mrpVal) }}</span>
+                                @endif
+                                @if($discPercent > 0)
+                                    <span class="inline-flex items-center gap-1 text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-black px-3 py-1 rounded-full shadow-xs">
+                                        <span>🔥 {{ $discPercent }}% OFF</span>
+                                    </span>
                                 @endif
                             </div>
+                            @if($saveAmount > 0)
+                                <span class="text-xs font-bold text-emerald-400 block mt-1">
+                                    Instant Combo Savings: ₹{{ number_format($saveAmount) }} ({{ $discPercent }}% OFF)
+                                </span>
+                            @endif
                         </div>
                     @endif
                     <a href="https://wa.me/916362346660?text={{ urlencode($whatsappMsg) }}" 

@@ -94,6 +94,17 @@
                                 <span class="bg-[#f4eeea] text-[#736c64] text-xs font-bold px-3 py-1 rounded-full border border-[#e8e4dc]">
                                     📦 {{ $pkg->items->count() }} Products Included
                                 </span>
+                                @php
+                                    $pkgMrp = ($pkg->mrp && $pkg->mrp > $pkg->price) ? $pkg->mrp : ($pkg->calculated_total > $pkg->price ? $pkg->calculated_total : null);
+                                    $discountPct = ($pkgMrp && $pkg->price && $pkgMrp > $pkg->price) ? round((($pkgMrp - $pkg->price) / $pkgMrp) * 100) : 0;
+                                    $savingsAmt = ($pkgMrp && $pkg->price && $pkgMrp > $pkg->price) ? ($pkgMrp - $pkg->price) : 0;
+                                @endphp
+                                @if($discountPct > 0)
+                                    <span class="bg-emerald-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
+                                        <span>🔥</span>
+                                        <span>{{ $discountPct }}% OFF</span>
+                                    </span>
+                                @endif
                             </div>
                             @if($pkg->tagline)
                                 <p class="text-xs sm:text-sm text-[#736c64] font-medium">
@@ -127,15 +138,22 @@
                             @if($pkg->price)
                                 <div class="text-left md:text-right">
                                     <span class="text-[10px] uppercase font-bold text-[#8c8275] tracking-wider block">Special Combo Price</span>
-                                    <div class="flex items-baseline gap-2">
+                                    <div class="flex items-baseline gap-2 flex-wrap">
                                         <span class="text-2xl md:text-3xl font-black text-[#171615]">₹{{ number_format($pkg->price) }}</span>
-                                        @if($pkg->mrp && $pkg->mrp > $pkg->price)
-                                            <span class="text-sm text-[#9c9489] line-through">₹{{ number_format($pkg->mrp) }}</span>
-                                            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded">
-                                                SAVE {{ round((($pkg->mrp - $pkg->price) / $pkg->mrp) * 100) }}%
+                                        @if($pkgMrp)
+                                            <span class="text-sm text-[#9c9489] line-through">MRP ₹{{ number_format($pkgMrp) }}</span>
+                                        @endif
+                                        @if($discountPct > 0)
+                                            <span class="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 font-black px-2.5 py-0.5 rounded-full shadow-2xs">
+                                                <span>🔥 {{ $discountPct }}% OFF</span>
                                             </span>
                                         @endif
                                     </div>
+                                    @if($savingsAmt > 0)
+                                        <span class="text-[11px] font-bold text-emerald-600 block mt-0.5">
+                                            You Save ₹{{ number_format($savingsAmt) }} ({{ $discountPct }}% Savings)
+                                        </span>
+                                    @endif
                                 </div>
                             @endif
 

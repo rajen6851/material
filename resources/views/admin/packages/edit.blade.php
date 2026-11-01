@@ -373,6 +373,46 @@
                     </div>
                 </div>
 
+                @php
+                    $calcTotal = $package->calculated_total;
+                    $refMrp = $package->mrp ?: $calcTotal;
+                    $calcDisc = ($refMrp && $package->price && $refMrp > $package->price) ? round((($refMrp - $package->price) / $refMrp) * 100) : 0;
+                    $calcSavings = ($refMrp && $package->price && $refMrp > $package->price) ? ($refMrp - $package->price) : 0;
+                @endphp
+
+                @if($calcTotal > 0 || $package->mrp > 0)
+                    <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🏷️</span>
+                            <div>
+                                <span class="text-xs font-black text-emerald-950 uppercase tracking-wide block">Package Discount Calculation:</span>
+                                <p class="text-xs text-emerald-800">
+                                    Total Items Value: <strong>₹{{ number_format($calcTotal, 2) }}</strong>
+                                    @if($package->mrp && $package->mrp != $calcTotal)
+                                        | Defined MRP: <strong>₹{{ number_format($package->mrp, 2) }}</strong>
+                                    @endif
+                                    | Package Price: <strong>₹{{ number_format($package->price, 2) }}</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            @if($calcDisc > 0)
+                                <span class="bg-emerald-600 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs">
+                                    🔥 {{ $calcDisc }}% DISCOUNT
+                                </span>
+                                <span class="text-xs font-bold text-emerald-900 bg-white border border-emerald-200 px-3 py-1.5 rounded-xl">
+                                    Customer Saves ₹{{ number_format($calcSavings) }}
+                                </span>
+                            @else
+                                <span class="text-xs text-slate-500 italic bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+                                    Set Package Price lower than MRP or Items total to show discount %
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Special Package Price (₹)</label>
