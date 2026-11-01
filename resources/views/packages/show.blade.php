@@ -49,18 +49,18 @@
 
                 <div class="flex items-center gap-4 flex-wrap">
                     @php
-                        $mrpVal = ($package->mrp && $package->mrp > $package->price) ? $package->mrp : ($package->calculated_total > $package->price ? $package->calculated_total : null);
-                        $discPercent = ($mrpVal && $package->price && $mrpVal > $package->price) ? round((($mrpVal - $package->price) / $mrpVal) * 100) : 0;
-                        $saveAmount = ($mrpVal && $package->price && $mrpVal > $package->price) ? ($mrpVal - $package->price) : 0;
+                        $mrpVal = $package->effective_mrp;
+                        $discPercent = $package->discount_percent;
+                        $saveAmount = $package->savings_amount;
                     @endphp
 
                     @if($package->price)
                         <div class="text-left md:text-right">
-                            <span class="text-xs text-[#a39e97] block">Complete Package Combo Price</span>
+                            <span class="text-xs text-[#a39e97] block font-medium">Complete Package Combo Price</span>
                             <div class="flex items-baseline gap-2 flex-wrap">
                                 <span class="text-2xl sm:text-3xl font-black text-[#c09b5a]">₹{{ number_format($package->price) }}</span>
-                                @if($mrpVal)
-                                    <span class="text-sm text-[#a39e97] line-through">MRP ₹{{ number_format($mrpVal) }}</span>
+                                @if($mrpVal && $mrpVal > $package->price)
+                                    <span class="text-sm text-[#a39e97] line-through font-medium">MRP ₹{{ number_format($mrpVal) }}</span>
                                 @endif
                                 @if($discPercent > 0)
                                     <span class="inline-flex items-center gap-1 text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-black px-3 py-1 rounded-full shadow-xs">
@@ -69,8 +69,8 @@
                                 @endif
                             </div>
                             @if($saveAmount > 0)
-                                <span class="text-xs font-bold text-emerald-400 block mt-1">
-                                    Instant Combo Savings: ₹{{ number_format($saveAmount) }} ({{ $discPercent }}% OFF)
+                                <span class="text-xs font-black text-emerald-400 block mt-1">
+                                    Instant Combo Savings: ₹{{ number_format($saveAmount) }} ({{ $discPercent }}% OFF on Combo)
                                 </span>
                             @endif
                         </div>
@@ -82,6 +82,20 @@
                     </a>
                 </div>
             </div>
+
+            @if($discPercent > 0)
+                <div class="mt-6 bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-slate-900 border border-emerald-500/40 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-white text-xs">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-lg">🎉</span>
+                        <span class="font-bold">Special Package Discount: Get <strong class="text-emerald-400 font-extrabold text-sm">{{ $discPercent }}% OFF</strong> across this entire bathroom package set!</span>
+                    </div>
+                    @if($saveAmount > 0)
+                        <span class="bg-emerald-500 text-slate-950 font-black text-xs px-3.5 py-1 rounded-full shadow-xs">
+                            You Save ₹{{ number_format($saveAmount) }}
+                        </span>
+                    @endif
+                </div>
+            @endif
         </div>
     </div>
 
@@ -137,8 +151,21 @@
                                             @if($item->description)
                                                 <p class="text-[11px] text-[#736c64] line-clamp-1 mt-0.5">{{ $item->description }}</p>
                                             @endif
-                                            @if($item->price)
-                                                <span class="text-[11px] font-extrabold text-[#171615] block mt-1">₹{{ number_format($item->price) }}</span>
+                                            @php
+                                                $itemPrice = $item->effective_price;
+                                                $itemMrp = $item->effective_mrp;
+                                                $itemDisc = $item->discount_percent;
+                                            @endphp
+                                            @if($itemPrice)
+                                                <div class="mt-2 space-y-0.5 leading-tight">
+                                                    <span class="text-sm font-black text-[#171615] block">₹{{ number_format($itemPrice) }}</span>
+                                                    @if($itemMrp && $itemMrp > $itemPrice)
+                                                        <span class="text-[11px] text-slate-400 line-through block">₹{{ number_format($itemMrp) }}</span>
+                                                    @endif
+                                                    @if($itemDisc && $itemDisc > 0)
+                                                        <span class="text-[11px] font-bold text-[#0d9488] block">Discount {{ $itemDisc }}%</span>
+                                                    @endif
+                                                </div>
                                             @endif
                                         </div>
                                     </div>
@@ -180,8 +207,21 @@
                                             @if($item->description)
                                                 <p class="text-[11px] text-[#736c64] line-clamp-1 mt-0.5">{{ $item->description }}</p>
                                             @endif
-                                            @if($item->price)
-                                                <span class="text-[11px] font-extrabold text-[#171615] block mt-1">₹{{ number_format($item->price) }}</span>
+                                            @php
+                                                $itemPrice = $item->effective_price;
+                                                $itemMrp = $item->effective_mrp;
+                                                $itemDisc = $item->discount_percent;
+                                            @endphp
+                                            @if($itemPrice)
+                                                <div class="mt-2 space-y-0.5 leading-tight">
+                                                    <span class="text-sm font-black text-[#171615] block">₹{{ number_format($itemPrice) }}</span>
+                                                    @if($itemMrp && $itemMrp > $itemPrice)
+                                                        <span class="text-[11px] text-slate-400 line-through block">₹{{ number_format($itemMrp) }}</span>
+                                                    @endif
+                                                    @if($itemDisc && $itemDisc > 0)
+                                                        <span class="text-[11px] font-bold text-[#0d9488] block">Discount {{ $itemDisc }}%</span>
+                                                    @endif
+                                                </div>
                                             @endif
                                         </div>
                                     </div>
@@ -223,8 +263,21 @@
                                             @if($item->description)
                                                 <p class="text-[11px] text-[#736c64] line-clamp-1 mt-0.5">{{ $item->description }}</p>
                                             @endif
-                                            @if($item->price)
-                                                <span class="text-[11px] font-extrabold text-[#171615] block mt-1">₹{{ number_format($item->price) }}</span>
+                                            @php
+                                                $itemPrice = $item->effective_price;
+                                                $itemMrp = $item->effective_mrp;
+                                                $itemDisc = $item->discount_percent;
+                                            @endphp
+                                            @if($itemPrice)
+                                                <div class="mt-2 space-y-0.5 leading-tight">
+                                                    <span class="text-sm font-black text-[#171615] block">₹{{ number_format($itemPrice) }}</span>
+                                                    @if($itemMrp && $itemMrp > $itemPrice)
+                                                        <span class="text-[11px] text-slate-400 line-through block">₹{{ number_format($itemMrp) }}</span>
+                                                    @endif
+                                                    @if($itemDisc && $itemDisc > 0)
+                                                        <span class="text-[11px] font-bold text-[#0d9488] block">Discount {{ $itemDisc }}%</span>
+                                                    @endif
+                                                </div>
                                             @endif
                                         </div>
                                     </div>
@@ -302,11 +355,27 @@
                                     @endif
                                 </div>
 
-                                <div class="mt-3 pt-2.5 border-t border-[#eee9e0] flex items-center justify-between text-xs">
-                                    @if($item->price)
-                                        <span class="font-extrabold text-[#171615]">₹{{ number_format($item->price) }}</span>
+                                <div class="mt-3 pt-2.5 border-t border-[#eee9e0] flex items-end justify-between">
+                                    @php
+                                        $itemPrice = $item->effective_price;
+                                        $itemMrp = $item->effective_mrp;
+                                        $itemDisc = $item->discount_percent;
+                                    @endphp
+                                    @if($itemPrice)
+                                        <div class="space-y-0.5 leading-tight">
+                                            <span class="text-sm font-black text-[#171615] block">₹{{ number_format($itemPrice) }}</span>
+                                            @if($itemMrp && $itemMrp > $itemPrice)
+                                                <span class="text-[11px] text-slate-400 line-through block">₹{{ number_format($itemMrp) }}</span>
+                                            @endif
+                                            @if($itemDisc && $itemDisc > 0)
+                                                <span class="text-[11px] font-bold text-[#0d9488] block">Discount {{ $itemDisc }}%</span>
+                                            @endif
+                                        </div>
                                     @else
                                         <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Included</span>
+                                    @endif
+                                    @if($item->quantity && $item->quantity > 1)
+                                        <span class="text-[11px] font-bold text-[#8c8275] bg-[#faf8f5] px-2 py-0.5 rounded border border-[#eee9e0]">Qty: {{ $item->quantity }}</span>
                                     @endif
                                 </div>
                             </div>

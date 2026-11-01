@@ -75,19 +75,9 @@
                             <a href="/admin/brands" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->is('admin/brands*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}"><span>&bull; Brands</span></a>
                             
                             @if(\Illuminate\Support\Facades\Route::has('admin.spotlights.index'))
-                            <a href="{{ route('admin.spotlights.index') }}"
-   class="flex items-center gap-3 px-4 py-3 rounded-xl
-          text-sm font-medium
-          {{ request()->routeIs('admin.spotlights.*')
-              ? 'bg-indigo-50 text-indigo-600'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600' }}
-          transition">
-
-    <span class="text-lg">🖼️</span>
-
-    <span>Spotlights</span>
-
-</a>
+                            <a href="{{ route('admin.spotlights.index') }}" class="w-full py-2 pl-8 rounded-lg transition flex items-center gap-2 {{ request()->routeIs('admin.spotlights.*') ? 'text-teal-400 font-bold bg-slate-800/50' : 'text-slate-300 hover:text-white hover:bg-slate-800/30' }}">
+                                <span>&bull; Spotlights</span>
+                            </a>
                             @endif
                         </div>
 

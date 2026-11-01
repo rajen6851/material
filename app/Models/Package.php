@@ -67,11 +67,67 @@ class Package extends Model
     /**
      * Get computed total MRP of all items in package
      */
+    public function getCalculatedMrpAttribute()
+    {
+        return (float) $this->items->sum(function ($item) {
+            $mrp = $item->effective_mrp ?: $item->effective_price;
+            return ($mrp ?? 0) * ($item->quantity ?? 1);
+        });
+    }
+
+    /**
+     * Get computed total selling price of all items in package
+     */
     public function getCalculatedTotalAttribute()
     {
-        return $this->items->sum(function ($item) {
-            return ($item->price ?? 0) * ($item->quantity ?? 1);
+        return (float) $this->items->sum(function ($item) {
+            return ($item->effective_price ?? ($item->price ?? 0)) * ($item->quantity ?? 1);
         });
+    }
+
+    /**
+     * Get effective package MRP (from package->mrp, or sum of item MRPs/prices)
+     */
+    public function getEffectiveMrpAttribute()
+    {
+        if (!empty($this->attributes['mrp']) && $this->attributes['mrp'] > 0) {
+            return (float) $this->attributes['mrp'];
+        }
+        $calcMrp = $this->calculated_mrp;
+        if ($calcMrp > 0 && $this->price && $calcMrp > $this->price) {
+            return (float) $calcMrp;
+        }
+        $calcTotal = $this->calculated_total;
+        if ($calcTotal > 0 && $this->price && $calcTotal > $this->price) {
+            return (float) $calcTotal;
+        }
+        return null;
+    }
+
+    /**
+     * Total package discount percentage
+     */
+    public function getDiscountPercentAttribute()
+    {
+        $mrp = $this->effective_mrp;
+        $price = (float) $this->price;
+        if ($mrp && $price && $mrp > $price) {
+            return (int) round((($mrp - $price) / $mrp) * 100);
+        }
+        return 0;
+    }
+
+    /**
+     * Total package savings amount
+     */
+    public function getSavingsAmountAttribute()
+    {
+        $mrp = $this->effective_mrp;
+        $price = (float) $this->price;
+        if ($mrp && $price && $mrp > $price) {
+            return (float) ($mrp - $price);
+        }
+        return 0.0;
     }
 }
 

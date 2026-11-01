@@ -38,15 +38,82 @@ class PackageItem extends Model
         return $this->belongsTo(Product::class);
     }
 
+    /**
+     * Resolve linked Product from product_id or cat_no (SKU)
+     */
+    public function getLinkedProductAttribute()
+    {
+        if ($this->relationLoaded('product') && $this->product) {
+            return $this->product;
+        }
+        if ($this->product_id) {
+            return $this->product;
+        }
+        if (!empty($this->cat_no)) {
+            $cat = trim($this->cat_no);
+            return Product::where('sku', $cat)->orWhere('sku', 'like', $cat)->first();
+        }
+        return null;
+    }
+
     public function getDisplayImageAttribute()
     {
         if ($this->image) {
             return asset($this->image);
         }
-        if ($this->product && $this->product->featured_image) {
-            return asset($this->product->featured_image);
+        $prod = $this->linked_product;
+        if ($prod && $prod->featured_image) {
+            return asset($prod->featured_image);
+        }
+        return null;
+    }
+
+    /**
+     * Get selling price (from item override or product table)
+     */
+    public function getEffectivePriceAttribute()
+    {
+        if (!empty($this->price) && $this->price > 0) {
+            return (float) $this->price;
+        }
+        $prod = $this->linked_product;
+        if ($prod && $prod->price > 0) {
+            return (float) $prod->price;
+        }
+        return null;
+    }
+
+    /**
+     * Get original MRP directly from products table
+     */
+    public function getEffectiveMrpAttribute()
+    {
+        $prod = $this->linked_product;
+        if ($prod) {
+            if ($prod->mrp > 0) {
+                return (float) $prod->mrp;
+            }
+            if ($prod->discount > 0 && $this->effective_price > 0) {
+                return (float) round($this->effective_price / (1 - ($prod->discount / 100)));
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get discount percentage directly from products table
+     */
+    public function getDiscountPercentAttribute()
+    {
+        $prod = $this->linked_product;
+        if ($prod && $prod->discount > 0) {
+            return (int) round($prod->discount);
+        }
+        $mrp = $this->effective_mrp;
+        $price = $this->effective_price;
+        if ($mrp && $price && $mrp > $price) {
+            return (int) round((($mrp - $price) / $mrp) * 100);
         }
         return null;
     }
 }
-

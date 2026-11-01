@@ -291,8 +291,21 @@
                                         @endif
                                     </td>
                                     <td class="py-3.5 px-4">
-                                        @if($item->price)
-                                            <span class="font-extrabold text-slate-900 text-xs">₹{{ number_format($item->price, 2) }}</span>
+                                        @php
+                                            $itemPrice = $item->effective_price;
+                                            $itemMrp = $item->effective_mrp;
+                                            $itemDisc = $item->discount_percent;
+                                        @endphp
+                                        @if($itemPrice)
+                                            <div class="space-y-0.5 leading-tight">
+                                                <span class="font-extrabold text-slate-900 text-xs block">₹{{ number_format($itemPrice, 2) }}</span>
+                                                @if($itemMrp && $itemMrp > $itemPrice)
+                                                    <span class="text-[10px] text-slate-400 line-through block">₹{{ number_format($itemMrp, 2) }}</span>
+                                                @endif
+                                                @if($itemDisc && $itemDisc > 0)
+                                                    <span class="text-[10px] font-bold text-teal-600 block">Discount {{ $itemDisc }}%</span>
+                                                @endif
+                                            </div>
                                         @else
                                             <span class="text-slate-400 italic">Included in package</span>
                                         @endif
