@@ -61,6 +61,17 @@
                         $whatsappMsg .= " priced at Rs. " . number_format($pkg->price);
                     }
                     $whatsappMsg .= ". Please provide the complete quotation and delivery details.";
+
+                    $basinItems = $pkg->items->filter(fn($i) => str_contains(strtolower($i->area), 'basin'));
+                    $wcItems = $pkg->items->filter(fn($i) => str_contains(strtolower($i->area), 'wc') || str_contains(strtolower($i->area), 'toilet'));
+                    $showerItems = $pkg->items->filter(fn($i) => str_contains(strtolower($i->area), 'shower'));
+                    $otherItems = $pkg->items->reject(fn($i) => 
+                        str_contains(strtolower($i->area), 'basin') || 
+                        str_contains(strtolower($i->area), 'wc') || 
+                        str_contains(strtolower($i->area), 'toilet') || 
+                        str_contains(strtolower($i->area), 'shower')
+                    );
+                    $hasAreas = $basinItems->isNotEmpty() || $wcItems->isNotEmpty() || $showerItems->isNotEmpty();
                 @endphp
 
                 <!-- Package Card -->
@@ -70,9 +81,11 @@
                     <div class="p-6 md:p-8 bg-gradient-to-r from-[#fbf9f6] via-[#f7f3ed] to-white border-b border-[#e8e4dc] flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div class="space-y-1.5">
                             <div class="flex items-center gap-3 flex-wrap">
-                                <h2 class="font-serif-pristo text-2xl md:text-3xl font-bold text-[#171615]">
-                                    {{ $pkg->name }}
-                                </h2>
+                                <a href="{{ route('packages.show', $pkg->slug) }}" class="group">
+                                    <h2 class="font-serif-pristo text-2xl md:text-3xl font-bold text-[#171615] group-hover:text-[#c09b5a] transition">
+                                        {{ $pkg->name }}
+                                    </h2>
+                                </a>
                                 @if($pkg->brand)
                                     <span class="bg-[#171615] text-[#c09b5a] text-xs font-extrabold tracking-wider uppercase px-3 py-1 rounded-full border border-[#c09b5a]/30">
                                         {{ $pkg->brand->name }}
@@ -86,6 +99,26 @@
                                 <p class="text-xs sm:text-sm text-[#736c64] font-medium">
                                     {{ $pkg->tagline }}
                                 </p>
+                            @endif
+
+                            @if($hasAreas)
+                                <div class="flex items-center gap-2 pt-1 flex-wrap text-[11px] font-bold">
+                                    @if($basinItems->isNotEmpty())
+                                        <span class="bg-sky-50 text-sky-800 border border-sky-200 px-2.5 py-0.5 rounded-full">
+                                            💧 {{ $basinItems->count() }} Basin Items
+                                        </span>
+                                    @endif
+                                    @if($wcItems->isNotEmpty())
+                                        <span class="bg-purple-50 text-purple-800 border border-purple-200 px-2.5 py-0.5 rounded-full">
+                                            🚽 {{ $wcItems->count() }} WC Items
+                                        </span>
+                                    @endif
+                                    @if($showerItems->isNotEmpty())
+                                        <span class="bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                                            🚿 {{ $showerItems->count() }} Shower Items
+                                        </span>
+                                    @endif
+                                </div>
                             @endif
                         </div>
 
@@ -106,77 +139,190 @@
                                 </div>
                             @endif
 
-                            <a href="https://wa.me/916362346660?text={{ urlencode($whatsappMsg) }}" 
-                               target="_blank"
-                               class="inline-flex items-center gap-2 bg-[#171615] hover:bg-[#c09b5a] text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-xl transition duration-300 shadow-sm">
-                                <svg class="w-4 h-4 fill-[#25D366]" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.353.101.173.448.74 0.963 1.2 0.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087.159.058 1.011.477 1.184.564.173.087.289.13.332.203.043.072.043.419-.101.824z"/></svg>
-                                <span>Get Quote</span>
-                            </a>
+                            <div class="flex items-center gap-2">
+                                <a href="{{ route('packages.show', $pkg->slug) }}" 
+                                   class="inline-flex items-center gap-1.5 bg-[#f4eeea] hover:bg-[#eae3d8] text-[#171615] text-xs font-bold px-4 py-3 rounded-xl transition">
+                                    <span>Details &rarr;</span>
+                                </a>
+                                <a href="https://wa.me/916362346660?text={{ urlencode($whatsappMsg) }}" 
+                                   target="_blank"
+                                   class="inline-flex items-center gap-2 bg-[#171615] hover:bg-[#c09b5a] text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-xl transition duration-300 shadow-sm">
+                                    <svg class="w-4 h-4 fill-[#25D366]" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.353.101.173.448.74 0.963 1.2 0.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087.159.058 1.011.477 1.184.564.173.087.289.13.332.203.043.072.043.419-.101.824z"/></svg>
+                                    <span>Get Quote</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Products in this Package (Single Unified Grid) -->
-                    <div class="p-6 md:p-8 bg-white">
-                        <div class="flex items-center justify-between mb-6 pb-3 border-b border-[#eee9e0]">
-                            <h3 class="font-serif-pristo text-lg md:text-xl font-bold text-[#171615] flex items-center gap-2">
-                                <span>📦 Products in this Package</span>
-                            </h3>
-                            <span class="text-xs text-[#8c8275] font-semibold">
-                                Total {{ $pkg->items->count() }} items included
-                            </span>
-                        </div>
+                    <!-- Products in this Package -->
+                    <div class="p-6 md:p-8 bg-white space-y-6">
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
-                            @forelse($pkg->items as $item)
-                                <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-[#c09b5a]/50 rounded-2xl p-4 transition duration-200 flex flex-col justify-between group">
-                                    <div>
-                                        <!-- Thumbnail -->
-                                        <div class="w-full h-36 bg-white border border-[#e8e4dc] rounded-xl p-2 flex items-center justify-center overflow-hidden mb-3">
-                                            @if($item->display_image)
-                                                <img src="{{ $item->display_image }}" alt="{{ $item->name }}" class="w-full h-full object-contain group-hover:scale-105 transition duration-300">
-                                            @else
-                                                <span class="text-4xl text-slate-300">📦</span>
+                        @if($hasAreas)
+                            <!-- 3 BROCHURE AREA COLUMNS: Basin Area, WC Area, Shower Area -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                                
+                                <!-- 1. Basin Area -->
+                                <div class="bg-[#faf8f5] rounded-2xl p-5 border border-[#eee9e0] space-y-3">
+                                    <div class="flex items-center justify-between border-b border-sky-100 pb-2.5">
+                                        <h4 class="font-bold text-sm text-[#171615] flex items-center gap-1.5">
+                                            <span class="text-sky-600">💧</span>
+                                            <span>Basin Area</span>
+                                        </h4>
+                                        <span class="text-[10px] font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
+                                            {{ $basinItems->count() }}
+                                        </span>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        @forelse($basinItems as $item)
+                                            <div class="bg-white rounded-xl p-3 border border-[#e8e4dc] flex items-center gap-3">
+                                                <div class="w-12 h-12 rounded-lg bg-[#faf8f5] p-1 flex-shrink-0 flex items-center justify-center overflow-hidden border border-[#eee9e0]">
+                                                    @if($item->display_image)
+                                                        <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                                    @else
+                                                        <span class="text-lg text-slate-300">💧</span>
+                                                    @endif
+                                                </div>
+                                                <div class="flex-grow min-w-0">
+                                                    @if($item->cat_no)
+                                                        <span class="text-[9px] font-mono font-bold text-[#8c8275] bg-[#faf8f5] px-1 py-0.5 rounded border border-[#eee9e0]">Cat: {{ $item->cat_no }}</span>
+                                                    @endif
+                                                    <h5 class="text-xs font-bold text-[#171615] truncate mt-0.5">{{ $item->name }}</h5>
+                                                    @if($item->price)
+                                                        <span class="text-[11px] font-extrabold text-[#171615] block mt-0.5">₹{{ number_format($item->price) }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <p class="text-xs text-slate-400 py-3 text-center italic">No items</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+
+                                <!-- 2. WC Area -->
+                                <div class="bg-[#faf8f5] rounded-2xl p-5 border border-[#eee9e0] space-y-3">
+                                    <div class="flex items-center justify-between border-b border-purple-100 pb-2.5">
+                                        <h4 class="font-bold text-sm text-[#171615] flex items-center gap-1.5">
+                                            <span class="text-purple-600">🚽</span>
+                                            <span>WC Area</span>
+                                        </h4>
+                                        <span class="text-[10px] font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                                            {{ $wcItems->count() }}
+                                        </span>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        @forelse($wcItems as $item)
+                                            <div class="bg-white rounded-xl p-3 border border-[#e8e4dc] flex items-center gap-3">
+                                                <div class="w-12 h-12 rounded-lg bg-[#faf8f5] p-1 flex-shrink-0 flex items-center justify-center overflow-hidden border border-[#eee9e0]">
+                                                    @if($item->display_image)
+                                                        <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                                    @else
+                                                        <span class="text-lg text-slate-300">🚽</span>
+                                                    @endif
+                                                </div>
+                                                <div class="flex-grow min-w-0">
+                                                    @if($item->cat_no)
+                                                        <span class="text-[9px] font-mono font-bold text-[#8c8275] bg-[#faf8f5] px-1 py-0.5 rounded border border-[#eee9e0]">Cat: {{ $item->cat_no }}</span>
+                                                    @endif
+                                                    <h5 class="text-xs font-bold text-[#171615] truncate mt-0.5">{{ $item->name }}</h5>
+                                                    @if($item->price)
+                                                        <span class="text-[11px] font-extrabold text-[#171615] block mt-0.5">₹{{ number_format($item->price) }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <p class="text-xs text-slate-400 py-3 text-center italic">No items</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+
+                                <!-- 3. Shower Area -->
+                                <div class="bg-[#faf8f5] rounded-2xl p-5 border border-[#eee9e0] space-y-3">
+                                    <div class="flex items-center justify-between border-b border-amber-100 pb-2.5">
+                                        <h4 class="font-bold text-sm text-[#171615] flex items-center gap-1.5">
+                                            <span class="text-amber-600">🚿</span>
+                                            <span>Shower Area</span>
+                                        </h4>
+                                        <span class="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                            {{ $showerItems->count() }}
+                                        </span>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        @forelse($showerItems as $item)
+                                            <div class="bg-white rounded-xl p-3 border border-[#e8e4dc] flex items-center gap-3">
+                                                <div class="w-12 h-12 rounded-lg bg-[#faf8f5] p-1 flex-shrink-0 flex items-center justify-center overflow-hidden border border-[#eee9e0]">
+                                                    @if($item->display_image)
+                                                        <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                                    @else
+                                                        <span class="text-lg text-slate-300">🚿</span>
+                                                    @endif
+                                                </div>
+                                                <div class="flex-grow min-w-0">
+                                                    @if($item->cat_no)
+                                                        <span class="text-[9px] font-mono font-bold text-[#8c8275] bg-[#faf8f5] px-1 py-0.5 rounded border border-[#eee9e0]">Cat: {{ $item->cat_no }}</span>
+                                                    @endif
+                                                    <h5 class="text-xs font-bold text-[#171615] truncate mt-0.5">{{ $item->name }}</h5>
+                                                    @if($item->price)
+                                                        <span class="text-[11px] font-extrabold text-[#171615] block mt-0.5">₹{{ number_format($item->price) }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <p class="text-xs text-slate-400 py-3 text-center italic">No items</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+
+                            </div>
+                        @else
+                            <!-- Fallback Grid when no areas are assigned -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+                                @forelse($pkg->items as $item)
+                                    <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-[#c09b5a]/50 rounded-2xl p-4 transition duration-200 flex flex-col justify-between group">
+                                        <div>
+                                            <div class="w-full h-36 bg-white border border-[#e8e4dc] rounded-xl p-2 flex items-center justify-center overflow-hidden mb-3">
+                                                @if($item->display_image)
+                                                    <img src="{{ $item->display_image }}" alt="{{ $item->name }}" class="w-full h-full object-contain group-hover:scale-105 transition duration-300">
+                                                @else
+                                                    <span class="text-4xl text-slate-300">📦</span>
+                                                @endif
+                                            </div>
+                                            @if($item->cat_no)
+                                                <span class="inline-block text-[10px] font-mono font-bold text-[#8c8275] bg-white border border-[#e8e4dc] px-2 py-0.5 rounded-md mb-1.5">
+                                                    Cat No: {{ $item->cat_no }}
+                                                </span>
+                                            @endif
+                                            <h4 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2">
+                                                {{ $item->name }}
+                                            </h4>
+                                            @if($item->description)
+                                                <p class="text-[11px] text-[#736c64] mt-1 font-normal leading-normal line-clamp-2">
+                                                    {{ $item->description }}
+                                                </p>
                                             @endif
                                         </div>
 
-                                        <!-- SKU / Cat No Badge -->
-                                        @if($item->cat_no)
-                                            <span class="inline-block text-[10px] font-mono font-bold text-[#8c8275] bg-white border border-[#e8e4dc] px-2 py-0.5 rounded-md mb-1.5">
-                                                Cat No: {{ $item->cat_no }}
-                                            </span>
-                                        @endif
-
-                                        <!-- Title -->
-                                        <h4 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2">
-                                            {{ $item->name }}
-                                        </h4>
-
-                                        <!-- Description -->
-                                        @if($item->description)
-                                            <p class="text-[11px] text-[#736c64] mt-1 font-normal leading-normal line-clamp-2">
-                                                {{ $item->description }}
-                                            </p>
-                                        @endif
+                                        <div class="mt-3 pt-2.5 border-t border-[#eee9e0] flex items-center justify-between text-xs">
+                                            @if($item->price)
+                                                <span class="font-extrabold text-[#171615]">₹{{ number_format($item->price) }}</span>
+                                            @else
+                                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Included</span>
+                                            @endif
+                                            @if($item->quantity && $item->quantity > 1)
+                                                <span class="text-[11px] font-bold text-[#8c8275]">Qty: {{ $item->quantity }}</span>
+                                            @endif
+                                        </div>
                                     </div>
-
-                                    <!-- Bottom Info -->
-                                    <div class="mt-3 pt-2.5 border-t border-[#eee9e0] flex items-center justify-between text-xs">
-                                        @if($item->price)
-                                            <span class="font-extrabold text-[#171615]">₹{{ number_format($item->price) }}</span>
-                                        @else
-                                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Included</span>
-                                        @endif
-                                        @if($item->quantity && $item->quantity > 1)
-                                            <span class="text-[11px] font-bold text-[#8c8275]">Qty: {{ $item->quantity }}</span>
-                                        @endif
+                                @empty
+                                    <div class="col-span-full py-10 text-center text-xs text-slate-400">
+                                        No products listed in this package yet.
                                     </div>
-                                </div>
-                            @empty
-                                <div class="col-span-full py-10 text-center text-xs text-slate-400">
-                                    No products listed in this package yet.
-                                </div>
-                            @endforelse
-                        </div>
+                                @endforelse
+                            </div>
+                        @endif
+
                     </div>
 
                     <!-- Card Bottom Action Bar -->
@@ -187,8 +333,8 @@
                         </div>
 
                         <div class="flex items-center gap-3 w-full sm:w-auto">
-                            <a href="/showroom-visit/book" class="w-full sm:w-auto text-center px-5 py-2.5 rounded-xl border border-[#171615] text-xs font-bold text-[#171615] hover:bg-[#171615] hover:text-white transition">
-                                Book Showroom Visit
+                            <a href="{{ route('packages.show', $pkg->slug) }}" class="w-full sm:w-auto text-center px-5 py-2.5 rounded-xl border border-[#171615] text-xs font-bold text-[#171615] hover:bg-[#171615] hover:text-white transition">
+                                View Full Configuration
                             </a>
                             <a href="https://wa.me/916362346660?text={{ urlencode($whatsappMsg) }}" 
                                target="_blank"
