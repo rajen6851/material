@@ -24,6 +24,7 @@ if (file_exists($webRoutesPath)) {
             "    Route::post('/admin/packages/{packageId}/items', [AdminPackageController::class, 'storeItem'])->name('admin.packages.items.store');\n" .
             "    Route::post('/admin/packages/{packageId}/bulk-add-products', [AdminPackageController::class, 'bulkAddProducts'])->name('admin.packages.items.bulk-add');\n" .
             "    Route::put('/admin/packages/items/{itemId}', [AdminPackageController::class, 'updateItem'])->name('admin.packages.items.update');\n" .
+            "    Route::post('/admin/packages/items/{itemId}/area', [AdminPackageController::class, 'updateItemArea'])->name('admin.packages.items.update-area');\n" .
             "    Route::delete('/admin/packages/items/{itemId}', [AdminPackageController::class, 'destroyItem'])->name('admin.packages.items.destroy');\n" .
             "    Route::get('/admin/packages/search-products', [AdminPackageController::class, 'searchProducts'])->name('admin.packages.search-products');\n" .
             "});\n";
@@ -31,7 +32,17 @@ if (file_exists($webRoutesPath)) {
         file_put_contents($webRoutesPath, $routesContent . $routesSnippet);
         echo "[OK] Package routes added to routes/web.php\n";
     } else {
-        echo "[INFO] Package routes already present in routes/web.php\n";
+        if (strpos($routesContent, 'admin.packages.items.update-area') === false) {
+            $routesContent = str_replace(
+                "Route::put('/admin/packages/items/{itemId}', [AdminPackageController::class, 'updateItem'])->name('admin.packages.items.update');",
+                "Route::put('/admin/packages/items/{itemId}', [AdminPackageController::class, 'updateItem'])->name('admin.packages.items.update');\n    Route::post('/admin/packages/items/{itemId}/area', [AdminPackageController::class, 'updateItemArea'])->name('admin.packages.items.update-area');",
+                $routesContent
+            );
+            file_put_contents($webRoutesPath, $routesContent);
+            echo "[OK] Added update-area route to routes/web.php\n";
+        } else {
+            echo "[INFO] Package routes already present in routes/web.php\n";
+        }
     }
 }
 

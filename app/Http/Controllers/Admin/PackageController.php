@@ -231,6 +231,7 @@ class PackageController extends Controller implements HasMiddleware
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'area' => 'nullable|string|max:100',
             'cat_no' => 'nullable|string|max:100',
             'description' => 'nullable|string',
             'price' => 'nullable|numeric|min:0',
@@ -259,7 +260,7 @@ class PackageController extends Controller implements HasMiddleware
 
         PackageItem::create([
             'package_id' => $package->id,
-            'area' => 'Package Product',
+            'area' => $request->area ?: 'Basin Area',
             'product_id' => $request->product_id,
             'cat_no' => $request->cat_no,
             'name' => $request->name,
@@ -283,6 +284,7 @@ class PackageController extends Controller implements HasMiddleware
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'area' => 'nullable|string|max:100',
             'cat_no' => 'nullable|string|max:100',
             'description' => 'nullable|string',
             'price' => 'nullable|numeric|min:0',
@@ -309,6 +311,7 @@ class PackageController extends Controller implements HasMiddleware
 
         $item->update([
             'name' => $request->name,
+            'area' => $request->area ?: ($item->area ?: 'Basin Area'),
             'cat_no' => $request->cat_no,
             'description' => $request->description,
             'image' => $imagePath,
@@ -319,6 +322,24 @@ class PackageController extends Controller implements HasMiddleware
 
         return redirect()->route('admin.packages.edit', $item->package_id)
             ->with('success', 'Product updated successfully!');
+    }
+
+    /**
+     * Quickly update item area (inline from dropdown).
+     */
+    public function updateItemArea(Request $request, $itemId)
+    {
+        $item = PackageItem::findOrFail($itemId);
+
+        $request->validate([
+            'area' => 'required|string|max:100',
+        ]);
+
+        $item->update([
+            'area' => $request->area,
+        ]);
+
+        return back()->with('success', "'{$item->name}' moved to {$item->area}.");
     }
 
     /**
@@ -348,7 +369,10 @@ class PackageController extends Controller implements HasMiddleware
         $request->validate([
             'product_ids' => 'required|array|min:1',
             'product_ids.*' => 'exists:products,id',
+            'area' => 'nullable|string|max:100',
         ]);
+
+        $area = $request->area ?: 'Basin Area';
 
         $products = Product::whereIn('id', $request->product_ids)->get();
 
@@ -357,7 +381,7 @@ class PackageController extends Controller implements HasMiddleware
         foreach ($products as $index => $product) {
             PackageItem::create([
                 'package_id' => $package->id,
-                'area' => 'Package Product',
+                'area' => $area,
                 'product_id' => $product->id,
                 'cat_no' => $product->sku,
                 'name' => $product->name,
@@ -370,7 +394,7 @@ class PackageController extends Controller implements HasMiddleware
         }
 
         return redirect()->route('admin.packages.edit', $package->id)
-            ->with('success', count($products) . ' product(s) added to package successfully!');
+            ->with('success', count($products) . " product(s) added to {$area} successfully!");
     }
 
     /**

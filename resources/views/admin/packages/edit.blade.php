@@ -5,10 +5,12 @@
         addItemModal: false,
         editItemModal: false,
         productPickerModal: false,
+        activeAreaTab: 'all',
         
         // Single Add/Edit State
         editItemData: {
             id: null,
+            area: 'Basin Area',
             cat_no: '',
             name: '',
             description: '',
@@ -22,6 +24,7 @@
         searchQuery: '',
         selectedCategory: '',
         selectedBrand: '',
+        selectedArea: 'Basin Area',
         loadingProducts: false,
         searchResults: [],
         selectedProductIds: [],
@@ -31,6 +34,9 @@
         },
         openEditModal(item) {
             this.editItemData = { ...item };
+            if (!this.editItemData.area) {
+                this.editItemData.area = 'Basin Area';
+            }
             this.editItemModal = true;
         },
         openProductPicker() {
@@ -148,7 +154,7 @@
         @endif
 
         <!-- ========================================================================= -->
-        <!-- OPTION B: UNIFIED PRODUCTS IN THIS PACKAGE LIST                           -->
+        <!-- PRODUCTS IN THIS PACKAGE (WITH BASIN / WC / SHOWER AREA)                   -->
         <!-- ========================================================================= -->
         <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden space-y-0">
             <!-- Section Header -->
@@ -160,7 +166,7 @@
                             {{ $items->count() }} Products
                         </span>
                     </h3>
-                    <p class="text-xs text-slate-500 mt-0.5">All products that come together in this package.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Organize items by <strong>Basin Area</strong>, <strong>WC Area</strong>, and <strong>Shower Area</strong>.</p>
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -175,24 +181,65 @@
                 </div>
             </div>
 
+            <!-- Filter Area Tabs -->
+            @php
+                $basinCount = $items->filter(fn($i) => str_contains(strtolower($i->area), 'basin'))->count();
+                $wcCount = $items->filter(fn($i) => str_contains(strtolower($i->area), 'wc') || str_contains(strtolower($i->area), 'toilet'))->count();
+                $showerCount = $items->filter(fn($i) => str_contains(strtolower($i->area), 'shower'))->count();
+                $otherCount = $items->count() - $basinCount - $wcCount - $showerCount;
+            @endphp
+            <div class="px-6 py-3 bg-slate-50/70 border-b border-slate-200 flex items-center gap-2 overflow-x-auto text-xs font-bold">
+                <span class="text-slate-400 uppercase tracking-wider text-[10px] mr-1 flex-shrink-0">Filter Area:</span>
+                <button type="button" @click="activeAreaTab = 'all'" :class="activeAreaTab === 'all' ? 'bg-slate-900 text-white shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'" class="px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 flex-shrink-0">
+                    <span>All Products</span>
+                    <span class="text-[10px] opacity-75">({{ $items->count() }})</span>
+                </button>
+                <button type="button" @click="activeAreaTab = 'Basin Area'" :class="activeAreaTab === 'Basin Area' ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 hover:bg-sky-50 border border-sky-200'" class="px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 flex-shrink-0">
+                    <span>💧 Basin Area</span>
+                    <span class="text-[10px] opacity-80">({{ $basinCount }})</span>
+                </button>
+                <button type="button" @click="activeAreaTab = 'WC Area'" :class="activeAreaTab === 'WC Area' ? 'bg-purple-600 text-white shadow-xs' : 'bg-white text-purple-800 hover:bg-purple-50 border border-purple-200'" class="px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 flex-shrink-0">
+                    <span>🚽 WC Area</span>
+                    <span class="text-[10px] opacity-80">({{ $wcCount }})</span>
+                </button>
+                <button type="button" @click="activeAreaTab = 'Shower Area'" :class="activeAreaTab === 'Shower Area' ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 hover:bg-amber-50 border border-amber-200'" class="px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 flex-shrink-0">
+                    <span>🚿 Shower Area</span>
+                    <span class="text-[10px] opacity-80">({{ $showerCount }})</span>
+                </button>
+                @if($otherCount > 0)
+                    <button type="button" @click="activeAreaTab = 'Other Area'" :class="activeAreaTab === 'Other Area' ? 'bg-slate-700 text-white shadow-xs' : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'" class="px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 flex-shrink-0">
+                        <span>📦 Other</span>
+                        <span class="text-[10px] opacity-80">({{ $otherCount }})</span>
+                    </button>
+                @endif
+            </div>
+
             <!-- Products List / Table -->
             @if($items->isNotEmpty())
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs text-slate-600">
                         <thead class="bg-slate-50/80 text-slate-700 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
                             <tr>
-                                <th class="py-3 px-4 w-12 text-center">#</th>
-                                <th class="py-3 px-4 w-20">Photo</th>
-                                <th class="py-3 px-4">Product Details</th>
-                                <th class="py-3 px-4">SKU / Cat No</th>
-                                <th class="py-3 px-4">Item Price</th>
-                                <th class="py-3 px-4 text-center">Qty</th>
-                                <th class="py-3 px-4 text-right">Actions</th>
+                                <th class="py-3.5 px-4 w-12 text-center">#</th>
+                                <th class="py-3.5 px-4 w-20">Photo</th>
+                                <th class="py-3.5 px-4">Product Details</th>
+                                <th class="py-3.5 px-4">Area / Section</th>
+                                <th class="py-3.5 px-4">SKU / Cat No</th>
+                                <th class="py-3.5 px-4">Item Price</th>
+                                <th class="py-3.5 px-4 text-center">Qty</th>
+                                <th class="py-3.5 px-4 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 font-medium">
                             @foreach($items as $index => $item)
-                                <tr class="hover:bg-slate-50/80 transition">
+                                @php
+                                    $isBasin = str_contains(strtolower($item->area), 'basin');
+                                    $isWc = str_contains(strtolower($item->area), 'wc') || str_contains(strtolower($item->area), 'toilet');
+                                    $isShower = str_contains(strtolower($item->area), 'shower');
+                                    $areaType = $isBasin ? 'Basin Area' : ($isWc ? 'WC Area' : ($isShower ? 'Shower Area' : 'Other Area'));
+                                @endphp
+                                <tr class="hover:bg-slate-50/80 transition"
+                                    x-show="activeAreaTab === 'all' || activeAreaTab === '{{ $areaType }}'">
                                     <td class="py-3.5 px-4 text-center font-bold text-slate-400">
                                         {{ $index + 1 }}
                                     </td>
@@ -221,6 +268,18 @@
                                                 </span>
                                             @endif
                                         </div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <form action="{{ route('admin.packages.items.update-area', $item->id) }}" method="POST">
+                                            @csrf
+                                            <select name="area" onchange="this.form.submit()" title="Click to quickly re-assign area"
+                                                class="text-xs font-black rounded-xl border py-1.5 px-2.5 cursor-pointer transition shadow-xs {{ $isBasin ? 'bg-sky-50 text-sky-800 border-sky-300' : ($isWc ? 'bg-purple-50 text-purple-800 border-purple-300' : ($isShower ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-slate-50 text-slate-700 border-slate-300')) }}">
+                                                <option value="Basin Area" {{ $isBasin ? 'selected' : '' }}>💧 Basin Area</option>
+                                                <option value="WC Area" {{ $isWc ? 'selected' : '' }}>🚽 WC Area</option>
+                                                <option value="Shower Area" {{ $isShower ? 'selected' : '' }}>🚿 Shower Area</option>
+                                                <option value="Other Area" {{ (!$isBasin && !$isWc && !$isShower) ? 'selected' : '' }}>📦 Other Area</option>
+                                            </select>
+                                        </form>
                                     </td>
                                     <td class="py-3.5 px-4">
                                         @if($item->cat_no)
@@ -301,24 +360,28 @@
                         <select name="brand_id" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
                             <option value="">-- No Specific Brand / Multi-Brand --</option>
                             @foreach($brands as $b)
-                                <option value="{{ $b->id }}" {{ old('brand_id', $package->brand_id) == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                                <option value="{{ $b->id }}" {{ old('brand_id', $package->brand_id) == $b->id ? 'selected' : '' }}>
+                                    {{ $b->name }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Tagline / Subtitle</label>
-                        <input type="text" name="tagline" value="{{ old('tagline', $package->tagline) }}" placeholder="e.g. Complete Sanitaryware &amp; CP Fittings Combo" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
+                        <input type="text" name="tagline" value="{{ old('tagline', $package->tagline) }}" placeholder="e.g. Victorian Suite with Concealed Cistern" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
                     </div>
+                </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Special Package Price (₹)</label>
-                        <input type="number" step="0.01" name="price" value="{{ old('price', $package->price) }}" placeholder="e.g. 18500" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
+                        <input type="number" step="0.01" name="price" value="{{ old('price', $package->price) }}" placeholder="e.g. 18990" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3 font-bold text-teal-600">
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Original MRP (₹)</label>
-                        <input type="number" step="0.01" name="mrp" value="{{ old('mrp', $package->mrp) }}" placeholder="e.g. 24000" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
+                        <input type="number" step="0.01" name="mrp" value="{{ old('mrp', $package->mrp) }}" placeholder="e.g. 24500" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
                     </div>
 
                     <div>
@@ -326,27 +389,26 @@
                         <input type="number" name="sort_order" value="{{ old('sort_order', $package->sort_order) }}" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">
                     </div>
 
-                    <div class="md:col-span-2">
+                    <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Package Cover Image</label>
-                        <div class="flex items-center gap-4">
-                            @if($package->image)
-                                <img src="{{ asset($package->image) }}" class="w-16 h-16 rounded-xl object-cover border border-slate-200">
-                            @endif
-                            <input type="file" name="image" accept="image/*" class="w-full border border-slate-200 text-xs p-2 rounded-xl bg-slate-50">
-                        </div>
+                        <input type="file" name="image" accept="image/*" class="w-full border border-slate-200 text-xs p-2 rounded-xl bg-slate-50">
+                        @if($package->image)
+                            <div class="mt-2 flex items-center gap-2">
+                                <img src="{{ asset($package->image) }}" class="w-10 h-10 object-cover rounded-lg border">
+                                <span class="text-[11px] text-slate-500">Current cover</span>
+                            </div>
+                        @endif
                     </div>
+                </div>
 
-                    <div class="flex items-center pt-4">
-                        <label class="inline-flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" name="is_active" value="1" {{ old('is_active', $package->is_active) ? 'checked' : '' }} class="rounded border-slate-300 text-teal-600 focus:ring-0 w-4 h-4">
-                            <span class="text-sm font-bold text-slate-800">Publish Active on Storefront</span>
-                        </label>
-                    </div>
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active', $package->is_active) ? 'checked' : '' }} class="rounded border-slate-300 text-teal-600 focus:ring-0">
+                    <label for="is_active" class="text-xs font-bold text-slate-700">Publish Active on Storefront</label>
+                </div>
 
-                    <div class="md:col-span-3">
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Description / Package Notes</label>
-                        <textarea name="description" rows="3" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">{{ old('description', $package->description) }}</textarea>
-                    </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Description / Package Notes</label>
+                    <textarea name="description" rows="3" class="w-full border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3">{{ old('description', $package->description) }}</textarea>
                 </div>
 
                 <div class="border-t border-slate-200 pt-4 flex justify-end">
@@ -365,7 +427,7 @@
             <div class="min-h-screen px-4 text-center flex items-center justify-center py-8">
                 <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="productPickerModal = false"></div>
 
-                <div class="bg-white rounded-3xl max-w-4xl w-full p-6 text-left align-middle shadow-2xl transform transition-all relative z-10 space-y-4 max-h-[90vh] flex flex-col">
+                <div class="bg-white rounded-3xl max-w-4xl w-full p-6 text-left align-middle shadow-2xl transform transition-all relative z-10 space-y-4 max-h-[92vh] flex flex-col">
                     
                     <!-- Header -->
                     <div class="flex items-center justify-between border-b pb-3 flex-shrink-0">
@@ -406,11 +468,28 @@
                         </div>
                     </div>
 
-                    <!-- Products Table / List -->
-                    <form action="{{ route('admin.packages.items.bulk-add', $package->id) }}" method="POST" class="flex-grow overflow-y-auto min-h-[300px] flex flex-col justify-between">
+                    <!-- Products Table / List Form -->
+                    <form action="{{ route('admin.packages.items.bulk-add', $package->id) }}" method="POST" class="flex-grow overflow-y-auto min-h-[300px] flex flex-col justify-between space-y-3">
                         @csrf
 
-                        <div class="overflow-y-auto max-h-[380px] divide-y divide-slate-100 border border-slate-200 rounded-2xl">
+                        <!-- Assign Area Selector Bar -->
+                        <div class="bg-indigo-50 border border-indigo-200 p-3 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg">📍</span>
+                                <div>
+                                    <label class="block text-xs font-black text-indigo-950 uppercase">Assign Selected Products to Area *</label>
+                                    <p class="text-[11px] text-indigo-700">Choose which bathroom zone these products belong to.</p>
+                                </div>
+                            </div>
+                            <select name="area" class="border-indigo-300 rounded-xl text-xs font-black text-slate-800 py-2 px-4 bg-white shadow-xs focus:ring-indigo-500">
+                                <option value="Basin Area">💧 Basin Area</option>
+                                <option value="WC Area">🚽 WC Area</option>
+                                <option value="Shower Area">🚿 Shower Area</option>
+                                <option value="Other Area">📦 Other Area</option>
+                            </select>
+                        </div>
+
+                        <div class="overflow-y-auto max-h-[320px] divide-y divide-slate-100 border border-slate-200 rounded-2xl">
                             <!-- Select All Bar -->
                             <div class="bg-slate-100/70 p-2.5 px-4 flex items-center justify-between text-xs font-bold text-slate-700 sticky top-0 z-10 border-b">
                                 <label class="inline-flex items-center gap-2 cursor-pointer">
@@ -520,18 +599,34 @@
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cat. No. / SKU</label>
-                                <input type="text" name="cat_no" id="single_cat_no" placeholder="e.g. F1015101 or S1040166" class="w-full border-slate-300 rounded-xl text-xs p-2.5 font-mono">
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Area / Section *</label>
+                                <select name="area" required class="w-full border-slate-300 rounded-xl text-xs p-2.5 font-bold text-slate-800">
+                                    <option value="Basin Area">💧 Basin Area</option>
+                                    <option value="WC Area">🚽 WC Area</option>
+                                    <option value="Shower Area">🚿 Shower Area</option>
+                                    <option value="Other Area">📦 Other Area</option>
+                                </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Price (₹)</label>
-                                <input type="number" step="0.01" name="price" id="single_price" placeholder="e.g. 1450" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cat. No. / SKU</label>
+                                <input type="text" name="cat_no" id="single_cat_no" placeholder="e.g. F1015101 or S1040166" class="w-full border-slate-300 rounded-xl text-xs p-2.5 font-mono">
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Product Name *</label>
                             <input type="text" name="name" id="single_name" required placeholder="e.g. VICTOR - Pillar cock with aerator" class="w-full border-slate-300 rounded-xl text-xs p-2.5 font-semibold">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Price (₹)</label>
+                                <input type="number" step="0.01" name="price" id="single_price" placeholder="e.g. 1450" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Quantity</label>
+                                <input type="number" name="quantity" value="1" min="1" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
+                            </div>
                         </div>
 
                         <div>
@@ -544,15 +639,9 @@
                             <input type="file" name="image" accept="image/*" class="w-full border border-slate-200 text-xs p-2 rounded-xl bg-slate-50">
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Quantity</label>
-                                <input type="number" name="quantity" value="1" min="1" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sort Order</label>
-                                <input type="number" name="sort_order" value="0" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
-                            </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sort Order</label>
+                            <input type="number" name="sort_order" value="0" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
                         </div>
 
                         <div class="pt-3 border-t flex justify-end gap-2">
@@ -590,18 +679,34 @@
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cat. No. / SKU</label>
-                                <input type="text" name="cat_no" x-model="editItemData.cat_no" class="w-full border-slate-300 rounded-xl text-xs p-2.5 font-mono">
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Area / Section *</label>
+                                <select name="area" x-model="editItemData.area" required class="w-full border-slate-300 rounded-xl text-xs p-2.5 font-bold text-slate-800">
+                                    <option value="Basin Area">💧 Basin Area</option>
+                                    <option value="WC Area">🚽 WC Area</option>
+                                    <option value="Shower Area">🚿 Shower Area</option>
+                                    <option value="Other Area">📦 Other Area</option>
+                                </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Price (₹)</label>
-                                <input type="number" step="0.01" name="price" x-model="editItemData.price" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cat. No. / SKU</label>
+                                <input type="text" name="cat_no" x-model="editItemData.cat_no" class="w-full border-slate-300 rounded-xl text-xs p-2.5 font-mono">
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Product Name *</label>
                             <input type="text" name="name" x-model="editItemData.name" required class="w-full border-slate-300 rounded-xl text-xs p-2.5 font-semibold">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Price (₹)</label>
+                                <input type="number" step="0.01" name="price" x-model="editItemData.price" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Quantity</label>
+                                <input type="number" name="quantity" x-model="editItemData.quantity" min="1" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
+                            </div>
                         </div>
 
                         <div>
@@ -614,15 +719,9 @@
                             <input type="file" name="image" accept="image/*" class="w-full border border-slate-200 text-xs p-2 rounded-xl bg-slate-50">
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Quantity</label>
-                                <input type="number" name="quantity" x-model="editItemData.quantity" min="1" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sort Order</label>
-                                <input type="number" name="sort_order" x-model="editItemData.sort_order" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
-                            </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sort Order</label>
+                            <input type="number" name="sort_order" x-model="editItemData.sort_order" class="w-full border-slate-300 rounded-xl text-xs p-2.5">
                         </div>
 
                         <div class="pt-3 border-t flex justify-end gap-2">

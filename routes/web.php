@@ -341,6 +341,7 @@ Route::get(
     Route::post('/admin/packages/{packageId}/items', [AdminPackageController::class, 'storeItem'])->name('admin.packages.items.store');
     Route::post('/admin/packages/{packageId}/bulk-add-products', [AdminPackageController::class, 'bulkAddProducts'])->name('admin.packages.items.bulk-add');
     Route::put('/admin/packages/items/{itemId}', [AdminPackageController::class, 'updateItem'])->name('admin.packages.items.update');
+    Route::post('/admin/packages/items/{itemId}/area', [AdminPackageController::class, 'updateItemArea'])->name('admin.packages.items.update-area');
     Route::delete('/admin/packages/items/{itemId}', [AdminPackageController::class, 'destroyItem'])->name('admin.packages.items.destroy');
     Route::get('/admin/packages/search-products', [AdminPackageController::class, 'searchProducts'])->name('admin.packages.search-products');
 });
