@@ -53,7 +53,7 @@ class Package extends Model
 
     public function items()
     {
-        return $this->hasMany(PackageItem::class)->orderBy('sort_order', 'asc')->orderBy('id', 'asc');
+        return $this->hasMany(PackageItem::class)->with('product')->orderBy('sort_order', 'asc')->orderBy('id', 'asc');
     }
 
     /**

@@ -51,7 +51,29 @@ class PackageItem extends Model
         }
         if (!empty($this->cat_no)) {
             $cat = trim($this->cat_no);
-            return Product::where('sku', $cat)->orWhere('sku', 'like', $cat)->first();
+            $p = Product::where('sku', $cat)->orWhere('sku', 'like', $cat)->first();
+            if ($p) {
+                return $p;
+            }
+        }
+        if (!empty($this->name)) {
+            $name = trim($this->name);
+            $p = Product::where('name', $name)->orWhere('name', 'like', "%{$name}%")->first();
+            if ($p) {
+                return $p;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get product detail page URL if linked to catalog product
+     */
+    public function getDetailUrlAttribute()
+    {
+        $prod = $this->linked_product;
+        if ($prod && !empty($prod->slug)) {
+            return route('products.show', $prod->slug);
         }
         return null;
     }

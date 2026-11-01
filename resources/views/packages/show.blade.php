@@ -133,29 +133,46 @@
 
                             <div class="space-y-3.5">
                                 @forelse($basinItems as $item)
+                                    @php
+                                        $detailUrl = $item->detail_url;
+                                        $itemPrice = $item->effective_price;
+                                        $itemMrp = $item->effective_mrp;
+                                        $itemDisc = $item->discount_percent;
+                                    @endphp
                                     <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-sky-300 rounded-2xl p-3.5 transition group flex gap-3.5 items-start overflow-hidden">
-                                        <div class="w-16 h-16 bg-white border border-[#e8e4dc] rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                            @if($item->display_image)
-                                                <img src="{{ $item->display_image }}" class="w-full h-full object-contain group-hover:scale-105 transition">
-                                            @else
-                                                <span class="text-2xl text-slate-300">💧</span>
-                                            @endif
-                                        </div>
+                                        @if($detailUrl)
+                                            <a href="{{ $detailUrl }}" class="w-16 h-16 bg-white border border-[#e8e4dc] hover:border-sky-400 rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden transition group-hover:scale-105" title="View {{ $item->name }} Details">
+                                                @if($item->display_image)
+                                                    <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                                @else
+                                                    <span class="text-2xl text-slate-300">💧</span>
+                                                @endif
+                                            </a>
+                                        @else
+                                            <div class="w-16 h-16 bg-white border border-[#e8e4dc] rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                                @if($item->display_image)
+                                                    <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                                @else
+                                                    <span class="text-2xl text-slate-300">💧</span>
+                                                @endif
+                                            </div>
+                                        @endif
                                         <div class="flex-grow min-w-0 overflow-hidden">
                                             @if($item->cat_no)
                                                 <span class="text-[10px] font-mono font-bold text-[#8c8275] bg-white border border-[#e8e4dc] px-1.5 py-0.5 rounded inline-block mb-0.5">
                                                     Cat: {{ $item->cat_no }}
                                                 </span>
                                             @endif
-                                            <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words" title="{{ $item->name }}">{{ $item->name }}</h5>
+                                            @if($detailUrl)
+                                                <a href="{{ $detailUrl }}" class="block group/link" title="View {{ $item->name }} Details">
+                                                    <h5 class="text-xs sm:text-[13px] font-bold text-[#171615] group-hover/link:text-[#c09b5a] transition leading-snug line-clamp-2 break-words">{{ $item->name }}</h5>
+                                                </a>
+                                            @else
+                                                <h5 class="text-xs sm:text-[13px] font-bold text-[#171615] leading-snug line-clamp-2 break-words" title="{{ $item->name }}">{{ $item->name }}</h5>
+                                            @endif
                                             @if($item->description)
                                                 <p class="text-[11px] text-[#736c64] line-clamp-1 mt-0.5">{{ $item->description }}</p>
                                             @endif
-                                            @php
-                                                $itemPrice = $item->effective_price;
-                                                $itemMrp = $item->effective_mrp;
-                                                $itemDisc = $item->discount_percent;
-                                            @endphp
                                             @if($itemPrice)
                                                 <div class="mt-2 space-y-0.5 leading-tight">
                                                     <span class="text-sm font-black text-[#171615] block">₹{{ number_format($itemPrice) }}</span>
@@ -166,6 +183,11 @@
                                                         <span class="text-[11px] font-bold text-[#0d9488] block">Discount {{ $itemDisc }}%</span>
                                                     @endif
                                                 </div>
+                                            @endif
+                                            @if($detailUrl)
+                                                <a href="{{ $detailUrl }}" class="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 hover:text-sky-900 transition mt-2">
+                                                    <span>View Product &rarr;</span>
+                                                </a>
                                             @endif
                                         </div>
                                     </div>
@@ -189,29 +211,46 @@
 
                             <div class="space-y-3.5">
                                 @forelse($wcItems as $item)
+                                    @php
+                                        $detailUrl = $item->detail_url;
+                                        $itemPrice = $item->effective_price;
+                                        $itemMrp = $item->effective_mrp;
+                                        $itemDisc = $item->discount_percent;
+                                    @endphp
                                     <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-purple-300 rounded-2xl p-3.5 transition group flex gap-3.5 items-start overflow-hidden">
-                                        <div class="w-16 h-16 bg-white border border-[#e8e4dc] rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                            @if($item->display_image)
-                                                <img src="{{ $item->display_image }}" class="w-full h-full object-contain group-hover:scale-105 transition">
-                                            @else
-                                                <span class="text-2xl text-slate-300">🚽</span>
-                                            @endif
-                                        </div>
+                                        @if($detailUrl)
+                                            <a href="{{ $detailUrl }}" class="w-16 h-16 bg-white border border-[#e8e4dc] hover:border-purple-400 rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden transition group-hover:scale-105" title="View {{ $item->name }} Details">
+                                                @if($item->display_image)
+                                                    <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                                @else
+                                                    <span class="text-2xl text-slate-300">🚽</span>
+                                                @endif
+                                            </a>
+                                        @else
+                                            <div class="w-16 h-16 bg-white border border-[#e8e4dc] rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                                @if($item->display_image)
+                                                    <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                                @else
+                                                    <span class="text-2xl text-slate-300">🚽</span>
+                                                @endif
+                                            </div>
+                                        @endif
                                         <div class="flex-grow min-w-0 overflow-hidden">
                                             @if($item->cat_no)
                                                 <span class="text-[10px] font-mono font-bold text-[#8c8275] bg-white border border-[#e8e4dc] px-1.5 py-0.5 rounded inline-block mb-0.5">
                                                     Cat: {{ $item->cat_no }}
                                                 </span>
                                             @endif
-                                            <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words" title="{{ $item->name }}">{{ $item->name }}</h5>
+                                            @if($detailUrl)
+                                                <a href="{{ $detailUrl }}" class="block group/link" title="View {{ $item->name }} Details">
+                                                    <h5 class="text-xs font-bold text-[#171615] group-hover/link:text-[#c09b5a] transition leading-snug line-clamp-2 break-words">{{ $item->name }}</h5>
+                                                </a>
+                                            @else
+                                                <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words" title="{{ $item->name }}">{{ $item->name }}</h5>
+                                            @endif
                                             @if($item->description)
                                                 <p class="text-[11px] text-[#736c64] line-clamp-1 mt-0.5">{{ $item->description }}</p>
                                             @endif
-                                            @php
-                                                $itemPrice = $item->effective_price;
-                                                $itemMrp = $item->effective_mrp;
-                                                $itemDisc = $item->discount_percent;
-                                            @endphp
                                             @if($itemPrice)
                                                 <div class="mt-2 space-y-0.5 leading-tight">
                                                     <span class="text-sm font-black text-[#171615] block">₹{{ number_format($itemPrice) }}</span>
@@ -222,6 +261,11 @@
                                                         <span class="text-[11px] font-bold text-[#0d9488] block">Discount {{ $itemDisc }}%</span>
                                                     @endif
                                                 </div>
+                                            @endif
+                                            @if($detailUrl)
+                                                <a href="{{ $detailUrl }}" class="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 hover:text-purple-900 transition mt-2">
+                                                    <span>View Product &rarr;</span>
+                                                </a>
                                             @endif
                                         </div>
                                     </div>
@@ -245,29 +289,46 @@
 
                             <div class="space-y-3.5">
                                 @forelse($showerItems as $item)
+                                    @php
+                                        $detailUrl = $item->detail_url;
+                                        $itemPrice = $item->effective_price;
+                                        $itemMrp = $item->effective_mrp;
+                                        $itemDisc = $item->discount_percent;
+                                    @endphp
                                     <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-amber-300 rounded-2xl p-3.5 transition group flex gap-3.5 items-start overflow-hidden">
-                                        <div class="w-16 h-16 bg-white border border-[#e8e4dc] rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                            @if($item->display_image)
-                                                <img src="{{ $item->display_image }}" class="w-full h-full object-contain group-hover:scale-105 transition">
-                                            @else
-                                                <span class="text-2xl text-slate-300">🚿</span>
-                                            @endif
-                                        </div>
+                                        @if($detailUrl)
+                                            <a href="{{ $detailUrl }}" class="w-16 h-16 bg-white border border-[#e8e4dc] hover:border-amber-400 rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden transition group-hover:scale-105" title="View {{ $item->name }} Details">
+                                                @if($item->display_image)
+                                                    <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                                @else
+                                                    <span class="text-2xl text-slate-300">🚿</span>
+                                                @endif
+                                            </a>
+                                        @else
+                                            <div class="w-16 h-16 bg-white border border-[#e8e4dc] rounded-xl p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                                @if($item->display_image)
+                                                    <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                                @else
+                                                    <span class="text-2xl text-slate-300">🚿</span>
+                                                @endif
+                                            </div>
+                                        @endif
                                         <div class="flex-grow min-w-0 overflow-hidden">
                                             @if($item->cat_no)
                                                 <span class="text-[10px] font-mono font-bold text-[#8c8275] bg-white border border-[#e8e4dc] px-1.5 py-0.5 rounded inline-block mb-0.5">
                                                     Cat: {{ $item->cat_no }}
                                                 </span>
                                             @endif
-                                            <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words" title="{{ $item->name }}">{{ $item->name }}</h5>
+                                            @if($detailUrl)
+                                                <a href="{{ $detailUrl }}" class="block group/link" title="View {{ $item->name }} Details">
+                                                    <h5 class="text-xs font-bold text-[#171615] group-hover/link:text-[#c09b5a] transition leading-snug line-clamp-2 break-words">{{ $item->name }}</h5>
+                                                </a>
+                                            @else
+                                                <h5 class="text-xs font-bold text-[#171615] leading-snug line-clamp-2 break-words" title="{{ $item->name }}">{{ $item->name }}</h5>
+                                            @endif
                                             @if($item->description)
                                                 <p class="text-[11px] text-[#736c64] line-clamp-1 mt-0.5">{{ $item->description }}</p>
                                             @endif
-                                            @php
-                                                $itemPrice = $item->effective_price;
-                                                $itemMrp = $item->effective_mrp;
-                                                $itemDisc = $item->discount_percent;
-                                            @endphp
                                             @if($itemPrice)
                                                 <div class="mt-2 space-y-0.5 leading-tight">
                                                     <span class="text-sm font-black text-[#171615] block">₹{{ number_format($itemPrice) }}</span>
@@ -278,6 +339,11 @@
                                                         <span class="text-[11px] font-bold text-[#0d9488] block">Discount {{ $itemDisc }}%</span>
                                                     @endif
                                                 </div>
+                                            @endif
+                                            @if($detailUrl)
+                                                <a href="{{ $detailUrl }}" class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-900 transition mt-2">
+                                                    <span>View Product &rarr;</span>
+                                                </a>
                                             @endif
                                         </div>
                                     </div>
@@ -300,18 +366,35 @@
                             </h4>
                             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                 @foreach($otherItems as $item)
-                                    <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] rounded-2xl p-3 flex items-center gap-3">
-                                        <div class="w-12 h-12 bg-white border border-[#e8e4dc] rounded-lg p-1 flex-shrink-0 flex items-center justify-center">
-                                            @if($item->display_image)
-                                                <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                    @php $detailUrl = $item->detail_url; @endphp
+                                    <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-[#c09b5a]/50 rounded-2xl p-3 flex items-center gap-3 transition group">
+                                        @if($detailUrl)
+                                            <a href="{{ $detailUrl }}" class="w-12 h-12 bg-white border border-[#e8e4dc] rounded-lg p-1 flex-shrink-0 flex items-center justify-center overflow-hidden hover:border-[#c09b5a] transition">
+                                                @if($item->display_image)
+                                                    <img src="{{ $item->display_image }}" class="w-full h-full object-contain group-hover:scale-105 transition">
+                                                @else
+                                                    <span class="text-lg text-slate-300">📦</span>
+                                                @endif
+                                            </a>
+                                        @else
+                                            <div class="w-12 h-12 bg-white border border-[#e8e4dc] rounded-lg p-1 flex-shrink-0 flex items-center justify-center">
+                                                @if($item->display_image)
+                                                    <img src="{{ $item->display_image }}" class="w-full h-full object-contain">
+                                                @else
+                                                    <span class="text-lg text-slate-300">📦</span>
+                                                @endif
+                                            </div>
+                                        @endif
+                                        <div class="min-w-0 flex-grow">
+                                            @if($detailUrl)
+                                                <a href="{{ $detailUrl }}" class="block group/link">
+                                                    <h6 class="text-xs font-bold text-[#171615] group-hover/link:text-[#c09b5a] transition truncate">{{ $item->name }}</h6>
+                                                </a>
                                             @else
-                                                <span class="text-lg text-slate-300">📦</span>
+                                                <h6 class="text-xs font-bold text-[#171615] truncate">{{ $item->name }}</h6>
                                             @endif
-                                        </div>
-                                        <div class="min-w-0">
-                                            <h6 class="text-xs font-bold text-[#171615] truncate">{{ $item->name }}</h6>
                                             @if($item->cat_no)
-                                                <span class="text-[10px] font-mono text-[#8c8275]">Cat: {{ $item->cat_no }}</span>
+                                                <span class="text-[10px] font-mono text-[#8c8275] block">Cat: {{ $item->cat_no }}</span>
                                             @endif
                                         </div>
                                     </div>
@@ -335,21 +418,38 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                         @forelse($package->items as $item)
+                            @php $detailUrl = $item->detail_url; @endphp
                             <div class="bg-[#faf8f5] hover:bg-white border border-[#eee9e0] hover:border-[#c09b5a]/50 rounded-2xl p-4 transition flex flex-col justify-between group">
                                 <div>
-                                    <div class="w-full h-40 bg-white border border-[#e8e4dc] rounded-xl p-2 flex items-center justify-center overflow-hidden mb-3">
-                                        @if($item->display_image)
-                                            <img src="{{ $item->display_image }}" class="w-full h-full object-contain group-hover:scale-105 transition">
-                                        @else
-                                            <span class="text-4xl text-slate-300">📦</span>
-                                        @endif
-                                    </div>
+                                    @if($detailUrl)
+                                        <a href="{{ $detailUrl }}" class="w-full h-40 bg-white border border-[#e8e4dc] hover:border-[#c09b5a] rounded-xl p-2 flex items-center justify-center overflow-hidden mb-3 transition block">
+                                            @if($item->display_image)
+                                                <img src="{{ $item->display_image }}" class="w-full h-full object-contain group-hover:scale-105 transition">
+                                            @else
+                                                <span class="text-4xl text-slate-300">📦</span>
+                                            @endif
+                                        </a>
+                                    @else
+                                        <div class="w-full h-40 bg-white border border-[#e8e4dc] rounded-xl p-2 flex items-center justify-center overflow-hidden mb-3">
+                                            @if($item->display_image)
+                                                <img src="{{ $item->display_image }}" class="w-full h-full object-contain group-hover:scale-105 transition">
+                                            @else
+                                                <span class="text-4xl text-slate-300">📦</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                     @if($item->cat_no)
                                         <span class="text-[10px] font-mono font-bold text-[#8c8275] bg-white border border-[#e8e4dc] px-2 py-0.5 rounded block mb-1">
                                             Cat No: {{ $item->cat_no }}
                                         </span>
                                     @endif
-                                    <h4 class="text-xs font-bold text-[#171615] mt-1">{{ $item->name }}</h4>
+                                    @if($detailUrl)
+                                        <a href="{{ $detailUrl }}" class="block group/link">
+                                            <h4 class="text-xs font-bold text-[#171615] group-hover/link:text-[#c09b5a] transition mt-1 line-clamp-2">{{ $item->name }}</h4>
+                                        </a>
+                                    @else
+                                        <h4 class="text-xs font-bold text-[#171615] mt-1">{{ $item->name }}</h4>
+                                    @endif
                                     @if($item->description)
                                         <p class="text-[11px] text-[#736c64] mt-0.5 line-clamp-2">{{ $item->description }}</p>
                                     @endif
