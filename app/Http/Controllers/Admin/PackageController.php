@@ -184,17 +184,21 @@ class PackageController extends Controller implements HasMiddleware
             $imagePath = 'images/packages/' . $imageName;
         }
 
-        $mrp = $request->mrp;
-        // If MRP is empty or 0, auto-fill from total products value in this package
-        if (empty($mrp) || $mrp <= 0) {
-            $mrp = $package->calculated_mrp ?: $package->calculated_total;
+        $calcMrp = (float) $package->calculated_mrp;
+        $calcTotal = (float) $package->calculated_total;
+
+        $mrp = $request->filled('mrp') ? (float) $request->mrp : null;
+        // If MRP is empty, 0, or matches selling price total when a true product MRP exists, use product MRP sum
+        if (empty($mrp) || $mrp <= 0 || ($calcMrp > $calcTotal && abs($mrp - $calcTotal) < 0.01)) {
+            $mrp = $calcMrp ?: $calcTotal;
         }
 
-        $price = $request->price;
+        $price = $request->filled('price') ? (float) $request->price : null;
         // If discount percent was submitted and price needs calculation
-        if ($request->filled('discount_percent') && $request->discount_percent > 0 && $mrp > 0) {
-            if (empty($price) || $price >= $mrp) {
-                $price = round($mrp - ($mrp * ($request->discount_percent / 100)));
+        if ($request->filled('discount_percent') && is_numeric($request->discount_percent) && $mrp > 0) {
+            $disc = (float) $request->discount_percent;
+            if ($disc > 0 && ($price === null || $price <= 0 || $price >= $mrp)) {
+                $price = round($mrp - ($mrp * ($disc / 100)), 2);
             }
         }
 

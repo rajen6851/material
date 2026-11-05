@@ -90,16 +90,24 @@ class Package extends Model
      */
     public function getEffectiveMrpAttribute()
     {
-        if (!empty($this->attributes['mrp']) && $this->attributes['mrp'] > 0) {
-            return (float) $this->attributes['mrp'];
+        $calcMrp = (float) $this->calculated_mrp;
+        $calcTotal = (float) $this->calculated_total;
+        $savedMrp = !empty($this->attributes['mrp']) ? (float) $this->attributes['mrp'] : 0;
+
+        // If saved MRP in DB matches the selling price total instead of the products MRP sum,
+        // prefer the real products MRP sum!
+        if ($savedMrp > 0 && $calcMrp > $calcTotal && abs($savedMrp - $calcTotal) < 0.01) {
+            return $calcMrp;
         }
-        $calcMrp = $this->calculated_mrp;
+
+        if ($savedMrp > 0) {
+            return $savedMrp;
+        }
         if ($calcMrp > 0 && $this->price && $calcMrp > $this->price) {
-            return (float) $calcMrp;
+            return $calcMrp;
         }
-        $calcTotal = $this->calculated_total;
         if ($calcTotal > 0 && $this->price && $calcTotal > $this->price) {
-            return (float) $calcTotal;
+            return $calcTotal;
         }
         return null;
     }

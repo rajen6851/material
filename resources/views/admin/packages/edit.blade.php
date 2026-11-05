@@ -387,15 +387,24 @@
                 </div>
 
                 @php
-                    $calcTotal = (float) $package->calculated_total;
-                    $calcMrp = (float) ($package->calculated_mrp ?: $calcTotal);
-                    $definedMrp = (float) ($package->mrp ?: $calcMrp);
+                    $calcTotal = (float) $package->calculated_total; // Selling price total (e.g. ₹20,594.00)
+                    $calcMrp = (float) ($package->calculated_mrp ?: $calcTotal); // Original MRP total (e.g. ₹29,220.00)
+
+                    // If saved MRP in DB is empty, 0, or matches selling price total (20594) when a real MRP exists,
+                    // automatically default to the real products Original MRP sum (29220)!
+                    $savedMrp = (float) $package->mrp;
+                    if ($savedMrp <= 0 || (abs($savedMrp - $calcTotal) < 0.01 && $calcMrp > $calcTotal)) {
+                        $initialMrp = $calcMrp;
+                    } else {
+                        $initialMrp = $savedMrp;
+                    }
+
                     $currentPrice = (float) ($package->price ?: 0);
-                    $calcDisc = ($definedMrp > 0 && $currentPrice > 0 && $definedMrp > $currentPrice) 
-                                ? round((($definedMrp - $currentPrice) / $definedMrp) * 100) 
+                    $calcDisc = ($initialMrp > 0 && $currentPrice > 0 && $initialMrp > $currentPrice) 
+                                ? round((($initialMrp - $currentPrice) / $initialMrp) * 100) 
                                 : 0;
-                    $calcSavings = ($definedMrp > 0 && $currentPrice > 0 && $definedMrp > $currentPrice) 
-                                ? ($definedMrp - $currentPrice) 
+                    $calcSavings = ($initialMrp > 0 && $currentPrice > 0 && $initialMrp > $currentPrice) 
+                                ? ($initialMrp - $currentPrice) 
                                 : 0;
                 @endphp
 
@@ -410,10 +419,15 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
-                                Products Catalog Total: <strong class="text-teal-700">₹{{ number_format($calcMrp ?: $calcTotal, 2) }}</strong>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-xs font-bold text-slate-800 bg-white border border-teal-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                                Products MRP Total: <strong class="text-teal-700">₹{{ number_format($calcMrp, 2) }}</strong>
                             </span>
+                            @if($calcTotal > 0 && $calcTotal != $calcMrp)
+                                <span class="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                                    Store Selling Total: <strong class="text-slate-700">₹{{ number_format($calcTotal, 2) }}</strong>
+                                </span>
+                            @endif
                         </div>
                     </div>
 
@@ -426,7 +440,7 @@
                                 </label>
                                 <button type="button" 
                                         onclick="autoFillMrpFromProducts()" 
-                                        title="Auto-fill MRP from sum of all products in this package" 
+                                        title="Auto-fill MRP from sum of all products' original MRPs (₹{{ number_format($calcMrp, 2) }})" 
                                         class="text-[10px] font-extrabold text-teal-700 hover:text-white bg-teal-100 hover:bg-teal-600 px-2.5 py-1 rounded-lg transition inline-flex items-center gap-1 cursor-pointer shadow-2xs">
                                     <span>⚡ Auto-Fill MRP</span>
                                 </button>
@@ -437,14 +451,19 @@
                                        step="0.01" 
                                        name="mrp" 
                                        id="package_mrp" 
-                                       value="{{ old('mrp', $package->mrp ?: ($calcMrp ?: $calcTotal)) }}" 
-                                       placeholder="e.g. 20594" 
+                                       value="{{ old('mrp', $initialMrp) }}" 
+                                       placeholder="e.g. {{ $calcMrp }}" 
                                        class="w-full pl-8 border-slate-300 focus:border-teal-500 focus:ring-0 rounded-xl text-sm p-3 font-semibold text-slate-900 bg-white shadow-2xs">
                             </div>
-                            <p class="text-[11px] text-slate-500 flex items-center justify-between">
-                                <span>Sum of products in package:</span>
-                                <strong class="text-slate-700">₹{{ number_format($calcMrp ?: $calcTotal, 2) }}</strong>
+                            <p class="text-[11px] text-slate-600 flex items-center justify-between">
+                                <span>Sum of products' MRP in catalog:</span>
+                                <strong class="text-teal-700 font-black">₹{{ number_format($calcMrp, 2) }}</strong>
                             </p>
+                            @if($calcTotal > 0 && $calcTotal != $calcMrp)
+                                <p class="text-[10px] text-slate-400 flex items-center justify-between">
+                                    <span>(Catalog selling price sum: ₹{{ number_format($calcTotal, 2) }})</span>
+                                </p>
+                            @endif
                         </div>
 
                         <!-- 2. Package Discount (% OFF) -->
@@ -515,7 +534,7 @@
                                 <span class="bg-emerald-600 text-white px-2.5 py-0.5 rounded-md text-[11px] font-black tracking-wide">🔥 {{ $calcDisc }}% DISCOUNT</span>
                                 <span>Special Price: <strong class="text-emerald-800 font-extrabold text-sm">₹{{ number_format($package->price, 2) }}</strong></span>
                                 <span class="text-slate-300">|</span>
-                                <span class="line-through text-slate-500 font-medium">MRP ₹{{ number_format($definedMrp, 2) }}</span>
+                                <span class="line-through text-slate-500 font-medium">MRP ₹{{ number_format($initialMrp, 2) }}</span>
                                 <span class="text-slate-300">|</span>
                                 <span class="text-emerald-700">Customer Saves <strong>₹{{ number_format($calcSavings, 2) }}</strong></span>
                             </div>
@@ -884,7 +903,8 @@
     <!-- Script for Real-time Package Discount & MRP Auto-fill Calculation -->
     <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const productsDefaultTotal = {{ (float) ($calcMrp ?: $calcTotal ?: 0) }};
+        const productsDefaultMrp = {{ (float) ($calcMrp ?: $calcTotal ?: 0) }};
+        const productsDefaultStoreTotal = {{ (float) ($calcTotal ?: 0) }};
         const mrpInput = document.getElementById('package_mrp');
         const discInput = document.getElementById('package_discount');
         const priceInput = document.getElementById('package_price');
@@ -930,8 +950,8 @@
         }
 
         window.autoFillMrpFromProducts = function () {
-            if (productsDefaultTotal > 0 && mrpInput) {
-                mrpInput.value = productsDefaultTotal.toFixed(2);
+            if (productsDefaultMrp > 0 && mrpInput) {
+                mrpInput.value = productsDefaultMrp.toFixed(2);
                 onMrpChange();
             }
         };
@@ -945,8 +965,8 @@
 
         function onDiscountChange() {
             let mrp = parseFloat(mrpInput ? mrpInput.value : 0) || 0;
-            if (mrp <= 0 && productsDefaultTotal > 0) {
-                mrp = productsDefaultTotal;
+            if (mrp <= 0 && productsDefaultMrp > 0) {
+                mrp = productsDefaultMrp;
                 if (mrpInput) mrpInput.value = mrp.toFixed(2);
             }
             const disc = parseFloat(discInput ? discInput.value : 0);
@@ -985,9 +1005,17 @@
         if (priceInput) priceInput.addEventListener('input', onPriceChange);
         if (mrpInput) mrpInput.addEventListener('input', onMrpChange);
 
-        // Initial run on page load: if MRP input is empty or 0, auto-fill it from products
-        if (mrpInput && (!mrpInput.value || parseFloat(mrpInput.value) <= 0) && productsDefaultTotal > 0) {
-            mrpInput.value = productsDefaultTotal.toFixed(2);
+        // Initial run on page load:
+        // If MRP input is empty, 0, or was previously set to store selling price total (20,594) instead of products MRP total (29,220),
+        // auto-correct it to products MRP total!
+        if (mrpInput && productsDefaultMrp > 0) {
+            const currentVal = parseFloat(mrpInput.value) || 0;
+            if (currentVal <= 0 || (productsDefaultStoreTotal > 0 && productsDefaultMrp > productsDefaultStoreTotal && Math.abs(currentVal - productsDefaultStoreTotal) < 0.01)) {
+                mrpInput.value = productsDefaultMrp.toFixed(2);
+                if (discInput && discInput.value) {
+                    onDiscountChange();
+                }
+            }
         }
         updateSummary();
     });
